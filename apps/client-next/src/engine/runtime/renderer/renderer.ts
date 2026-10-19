@@ -216,6 +216,8 @@ export function createRenderer(
 			frame = null;
 		},
 		setFootprints: world.footprints,
+		setGroundRings: world.groundRings,
+		setZoneFog: world.zoneFog,
 		setSelectionDecal: world.selectionDecal,
 		/*
 		================

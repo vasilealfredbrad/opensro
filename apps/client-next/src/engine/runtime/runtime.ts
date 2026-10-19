@@ -867,6 +867,7 @@ export function startRuntime(
 						resourceError: (!localReady || !baselineReady ? characters.error() : null) ??
 							(!audio.ready() ? audio.error() : null),
 						simulationTimeMs,
+						cameraYaw: worldPresented ? input.camera().yaw : undefined,
 						hoveredEntity,
 						dropNamesHeld: input.dropNamesHeld(),
 						blindHeld: worldPresented && input.blindHeld(),

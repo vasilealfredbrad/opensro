@@ -208,7 +208,9 @@ effects, then the streak's (port-only).
 ================
 */
 func (rt *Runtime) statModifierWrites(division string, c *enterworld.Character) []paramkeeper.Write {
-	return append(rt.effects.ModifierWrites(division, c.Name), rt.mostWantedWrites(c)...)
+	writes := append(rt.effects.ModifierWrites(division, c.Name), rt.mostWantedWrites(c)...)
+	// Port-only: a battle royale match character's HP and damage factors.
+	return append(writes, rt.battleRoyaleStatWrites(division, c)...)
 }
 
 /*

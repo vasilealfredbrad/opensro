@@ -211,6 +211,20 @@ export type GameplayCommand =
 	| { readonly kind: "avatar-move"; readonly equip: boolean; readonly source: number; readonly destination: number; }
 	| import("@/engine/foundation/gameplay/party-matching").PartyMatchCommand
 	| { readonly kind: "gm-command"; readonly line: string; }
+	// Port-only, not native: a Battle Royale build pick (0x7FB2, battle-royale.ts).
+	| { readonly kind: "battle-royale-pick"; readonly build: number; }
+	// Port-only, not native: a GM's Battle Royale bot settings (0x7FB4 v2, battle-royale.ts).
+	| {
+		readonly kind: "battle-royale-bots";
+		readonly enabled: boolean;
+		readonly difficulty: number;
+		readonly count: number;
+	}
+	// Port-only, not native: the GM panel's catalogue search (gm-catalog.ts).
+	| {
+		readonly kind: "gm-catalog";
+		readonly request: import("@/engine/foundation/gameplay/gm-catalog").GmCatalogRequest;
+	}
 	| { readonly kind: "whisper-block"; readonly name: string; readonly blocked: boolean; }
 	| { readonly kind: "cos-name"; readonly gid: number; readonly name: string; }
 	| { readonly kind: "friend-request"; readonly name: string; }
@@ -604,6 +618,24 @@ Presentation owns the derived skillIndex; it never travels back to simulation.
 export interface GameplayState {
 	readonly itemMall?: import("./item-mall").MallState;
 	readonly betaPlayers?: readonly BetaMapPlayer[];
+	// Port-only, not native: the Battle Royale match as this player sees it
+	// (0x3FB2, battle-royale.ts); absent when no match concerns the player.
+	readonly battleRoyale?: import("@/engine/foundation/gameplay/battle-royale").BattleRoyaleState;
+	// Port-only: where the Battle Royale lobby stands, for every player.
+	readonly battleRoyaleLobby?: import("@/engine/foundation/gameplay/battle-royale").BattleRoyaleCircle;
+	// Port-only, not native: the match's latest scoreboard (0x3FB3); absent
+	// before the first one and from a new match's lobby on.
+	readonly battleRoyaleScoreboard?: import("@/engine/foundation/gameplay/battle-royale").BattleRoyaleScoreboard;
+	// Port-only, not native: the bot roster (0x3FB4) and this match's bot
+	// names; absent before the first roster. A match's end (state 0) empties
+	// the roster; its names stay with the results until a new lobby.
+	readonly battleRoyaleBots?: import("@/engine/foundation/gameplay/battle-royale").BattleRoyaleBots;
+	// Port-only, not native: the living bots' grid positions (0x3FB5) with
+	// their receipt time, while a match runs; absent otherwise.
+	readonly battleRoyaleBotPositions?: import("@/engine/foundation/gameplay/battle-royale").BattleRoyaleBotPositions;
+	// Port-only, not native: the marked airdrop (0x3FB6, Stage 8b) with its
+	// receipt time; absent when none is marked and outside a match.
+	readonly battleRoyaleAirdrop?: import("@/engine/foundation/gameplay/battle-royale-airdrop").BattleRoyaleAirdrop;
 	/** RefObjIDs the server never spends (the beta starter kit), drawn as unlimited. */
 	readonly unlimitedItems?: readonly number[];
 	readonly returnScroll?: import("@/engine/foundation/gameplay/return-scroll").ReturnScrollCast;
@@ -615,6 +647,7 @@ export interface GameplayState {
 	readonly environmentalDamage?: readonly import("./combat-feedback").EnvironmentalDamage[];
 	readonly gmReplies?:
 		readonly (import("@/engine/foundation/gameplay/gm-command").GmReply & { readonly sequence: number; })[];
+	readonly gmCatalog?: import("@/engine/foundation/gameplay/gm-catalog").GmCatalog;
 	// 0x352D: the transport bag's trade level (cos-trade-info.ts).
 	readonly tradeStars?: number;
 	readonly eventGroups?: Readonly<Record<number, number>>;
@@ -661,6 +694,10 @@ export interface GameplayState {
 	// target-bone projectiles re-read the victim's socket in flight instead of
 	// flying to the launch-captured endpoint (effects.ts).
 	readonly homingProjectiles?: boolean;
+	// The server's port-only SRO_CHAIN_LIGHTNING_HOP_MS rule, published at
+	// world entry: Chain Lightning's bolt leaves each victim on the shard's
+	// period (chain-cadence.ts, effects.ts). Absent is the native flight.
+	readonly chainLightningHop?: import("@/engine/foundation/animation/chain-cadence").ChainLightningHop;
 	// The server's port-only SRO_REVERSE_RETURN_MAP option is on (reverse-return-map.ts).
 	readonly reverseMapPoints?: readonly import("@/engine/foundation/gameplay/reverse-return-map").ReverseMapPoint[];
 	readonly abnormalRecords?: readonly import("@/engine/foundation/gameplay/abnormal-snapshot").AbnormalRecord[];

@@ -21,6 +21,7 @@ import (
 	"opensro.online/server/internal/domain"
 	"opensro.online/server/internal/game/action"
 	"opensro.online/server/internal/game/enterworld"
+	"opensro.online/server/internal/game/item/devilspirit"
 	"opensro.online/server/internal/game/progression"
 	"opensro.online/server/internal/game/quest"
 	"opensro.online/server/internal/game/world/simulation"
@@ -162,6 +163,15 @@ func openAuthorityPlane(
 		log.Infof("cos: %s=%v scaled %d mall vehicle and pet row(s) (port-only, not native)",
 			enterworld.EnvMallRideSpeed, rideFactor, scaled)
 	}
+	// Port-only, not native: the Devil's Spirit rows of a later client,
+	// as v1.150 avatar attachments (game/item/devilspirit).
+	if devilspirit.FromEnv() {
+		added, err := devilspirit.Apply(textdata.Items, textdata.MagicOptions, textdata.Skills)
+		if err != nil {
+			return authorityPlane{}, err
+		}
+		log.Infof("items: %s added %d Devil's Spirit row(s) (port-only, not native)", devilspirit.EnvDevilSpirit, added)
+	}
 	options := store.OptionsFromEnv()
 	options.DefaultSkills = enterworld.DefaultSkillSeeder(textdata.Skills)
 	options.DefaultInventory = enterworld.StarterInventorySeeder(
@@ -205,6 +215,11 @@ func openAuthorityPlane(
 		return authorityPlane{}, fmt.Errorf("GM allowlist: %w", err)
 	}
 	authorityStore.ReconcileGMPrivilege(gmIdentities)
+	// Port-only: rows left holding a battle royale match character by a
+	// crash get their real character back before the world opens.
+	if restored := restoreHeldBattleRoyaleCharacters(authorityStore); restored > 0 {
+		log.Infof("battle royale: %d held character(s) restored at boot", restored)
+	}
 
 	config := agentapi.Config{
 		Store:                 authorityStore,
@@ -274,6 +289,9 @@ func newBootstrapDependencies(
 		return nil, err
 	}
 	deps.Characters = authorityStore.Characters()
+	// Port-only: the battle royale bots are live characters the store
+	// never persists (data/store/ephemeral.go).
+	deps.Ephemeral = authorityStore
 	deps.ResolveDivisionID = func(requested string) string {
 		if requested == ownedShard.ID {
 			return ownedShard.ID

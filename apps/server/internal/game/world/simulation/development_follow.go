@@ -12,7 +12,6 @@ import (
 	"fmt"
 
 	"opensro.online/server/internal/domain"
-	"opensro.online/server/internal/game/item/wire"
 	"opensro.online/server/internal/game/world/monster"
 )
 
@@ -62,28 +61,7 @@ DevelopmentMoveLeader
 ================
 */
 func (ops *MonsterMoverOps) DevelopmentMoveLeader(division string, gid uint32, destination monster.Pose, now int64) ([]Frame, error) {
-	instance, ok := ops.Monsters.Get(division, gid)
-	if !ok || instance.CurrentHP == 0 {
-		return nil, fmt.Errorf("leader absent/dead")
-	}
-	if now < instance.SummonActionUntilMs {
-		return nil, fmt.Errorf("summon recovery still owns leader")
-	}
-	mover, ok := ops.Monsters.Mover(division, gid)
-	if !ok {
-		return nil, fmt.Errorf("leader mover absent")
-	}
-	if mover.Mode() == monster.MoverWandering {
-		mover.Pose = mover.LivePoseAt(now, ops.TerrainHeight)
-		mover.From, mover.To = monster.Pose{}, monster.Pose{}
-		mover.DepartMs, mover.ArriveMs = 0, 0
-		mustMoverTransition(&mover, monster.MoverEventSegmentArrived, 0)
-	}
-	if mover.Mode() != monster.MoverIdle {
-		return nil, fmt.Errorf("leader not script-idle")
-	}
-	mustMoverTransition(&mover, monster.MoverEventStartWander, 0)
-	return ops.commitSegment(division, instance, mover, destination, instance.RunSpeed(), wire.MoveStateRun, now), nil
+	return ops.SteerMonster(division, gid, destination, now)
 }
 
 /*

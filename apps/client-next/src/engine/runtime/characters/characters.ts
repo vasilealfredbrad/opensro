@@ -168,7 +168,7 @@ export function createCharacterPresentation(
 	const weather = createPresentationWeather();
 	const states = new Map<number, CharacterPresentationState>();
 	const animationEmission = createAnimationEmission( allocateActor );
-	const auxiliary = createAuxiliaryPresentation( allocateActor );
+	const auxiliary = createAuxiliaryPresentation( allocateActor, play );
 	const modelEmission = createModelEmission( allocateActor );
 	const structureVisuals = createStructureVisuals();
 	const orbs = createOrbs( play, random, allocateActor ), scenery = createSceneryEmission( allocateActor );
@@ -692,7 +692,7 @@ export function createCharacterPresentation(
 				displayedDependencies.delete( gid );
 			}
 		}
-		footprints.step( seconds );
+		footprints.step( seconds, gameplay );
 		const settled = new Set<number>();
 		for ( const entity of entities ) {
 			const state = states.get( entity.gid ), resource = published.catalog.get( appearanceRef( entity ) );
@@ -720,7 +720,7 @@ export function createCharacterPresentation(
 			resources.failed
 		);
 		auxiliary.presentStages(
-			{ orbActors, effectActors, next, seconds, animationHolders, player: gameplay?.pose ?? undefined },
+			{ orbActors, effectActors, next, seconds, animationHolders, gameplay },
 			{ renderer, resources, effects, probe }
 		);
 		auxiliary.step(

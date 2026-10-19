@@ -49,7 +49,6 @@ apps/client-next/src/engine/foundation/animation/projectile-curve.ts
 apps/client-next/src/engine/foundation/animation/random-idle.ts
 apps/client-next/src/engine/foundation/animation/scenery-emission.ts
 apps/client-next/src/engine/foundation/animation/skill-motion-resolve.ts
-apps/client-next/src/engine/foundation/animation/skill-motion.ts
 apps/client-next/src/engine/foundation/animation/status-presentation.ts
 apps/client-next/src/engine/foundation/assets/asset-budget.ts
 apps/client-next/src/engine/foundation/assets/image-budget.ts
@@ -166,7 +165,6 @@ apps/client-next/src/engine/foundation/ui/resource-error.ts
 apps/client-next/src/engine/foundation/ui/retained-layout.ts
 apps/client-next/src/engine/foundation/ui/skill-layout.ts
 apps/client-next/src/engine/foundation/ui/skill-tooltip-data.ts
-apps/client-next/src/engine/foundation/ui/sound-catalog.ts
 apps/client-next/src/engine/foundation/ui/stretch-ring.ts
 apps/client-next/src/engine/foundation/ui/tooltip-rows.ts
 apps/client-next/src/engine/foundation/ui/unique-banner.ts
@@ -367,7 +365,6 @@ apps/server/internal/game/world/simulation/testdata/gen_parity_vectors.mjs
 scripts/build/char/authoredAnimationBindings.mjs
 scripts/build/char/avatarVisualOverrides.mjs
 scripts/build/char/buildAvatar.mjs
-scripts/build/char/buildSkillEffectRecords.mjs
 scripts/build/char/compileBanTimeline.mjs
 scripts/build/char/compileBsrVisual.mjs
 scripts/build/char/defaultWearPolicy.mjs

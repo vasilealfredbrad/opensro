@@ -9,6 +9,7 @@ magicoptions.go - magic option definitions (magicoption.txt)
 package enterworld
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -154,6 +155,42 @@ Len
 func (t *TextdataMagicOptions) Len() int {
 	t.once.Do(t.load)
 	return len(t.byParamID)
+}
+
+/*
+==================
+AddPortOnlyMagicOptions
+
+Port-only, not native. Adds definition rows the v1.150 magicoption.txt
+does not have (the Devil's Spirit's MATTR_NASRUN_* rows of a later
+client, game/item/devilspirit). Like AddPortOnlyItems it runs at wiring,
+before any owner reads the catalogue: every reader, the stat projection
+and the client's magicOptionSnapshot see one table. A row without a
+param id, tag or codename, or whose id the loaded data already uses,
+refuses the whole set.
+==================
+*/
+func (t *TextdataMagicOptions) AddPortOnlyMagicOptions(rows []MagicOptionRow) (int, error) {
+	t.once.Do(t.load)
+	seen := map[uint32]bool{}
+	for _, row := range rows {
+		if row.ParamID == 0 || row.ParamID > 0xffff || row.Tag == 0 || row.OptionName == "" {
+			return 0, fmt.Errorf("port-only magic options: row %d %q has no identity", row.ParamID, row.OptionName)
+		}
+		if _, used := t.byParamID[row.ParamID]; used || seen[row.ParamID] {
+			return 0, fmt.Errorf("port-only magic options: param %d of %s is already used", row.ParamID, row.OptionName)
+		}
+		seen[row.ParamID] = true
+	}
+	for _, row := range rows {
+		added := row
+		if row.RangeWords != nil {
+			words := *row.RangeWords
+			added.RangeWords = &words
+		}
+		t.byParamID[row.ParamID] = &added
+	}
+	return len(rows), nil
 }
 
 /*

@@ -27,6 +27,7 @@ companion. Monster pursuit already resolves both kinds of opponent.
 package action
 
 import (
+	"opensro.online/server/internal/game/battleroyale"
 	"strings"
 	"sync/atomic"
 
@@ -91,6 +92,10 @@ func (rt *Runtime) orderPetAttack(division string, character, snapshot *enterwor
 	pet := snapshot.CompanionByGID(cosGID)
 	if pet == nil || !pet.Summoned || pet.Mounted || pet.CurrentHP == 0 || targetGID == 0 {
 		return refuse("pet not summoned, mounted, dead or no target")
+	}
+	// Port-only: no attack pet fights for a battle royale match character.
+	if battleroyale.Held(character) {
+		return refuse("battle royale match character")
 	}
 	ref, ok := rt.cosReference(pet)
 	if !ok || ref.TidWord>>11 != attackPetBand {

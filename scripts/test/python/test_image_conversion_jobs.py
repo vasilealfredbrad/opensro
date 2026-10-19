@@ -30,7 +30,9 @@ from PIL import Image
 
 SCRATCH = Path(tempfile.mkdtemp(prefix="sro-convert-"))
 SCRATCH_ENV = {"SRO_GAME_ROOT": str(SCRATCH / "game"), "SRO_GENERATED_ROOT": str(SCRATCH / "generated")}
-TOUCHED_ENV = [*SCRATCH_ENV, "SRO_BUILD_JOBS", "SRO_FORCE_IMAGE_CONVERT"]
+# SRO_IMPORT_ROOT (a later client's port-only import) is cleared so a
+# developer shell that sets it cannot add the import's images to the scratch.
+TOUCHED_ENV = [*SCRATCH_ENV, "SRO_BUILD_JOBS", "SRO_FORCE_IMAGE_CONVERT", "SRO_IMPORT_ROOT"]
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import sro_paths  # noqa: E402
 
@@ -83,6 +85,7 @@ class ImageConversionJobsTest(unittest.TestCase):
 		global convert_images
 		cls.saved_env = {name: os.environ.get(name) for name in TOUCHED_ENV}
 		os.environ.update(SCRATCH_ENV)
+		os.environ.pop("SRO_IMPORT_ROOT", None)
 		convert_images = bind_roots()
 		for root in (convert_images.EXTRACTED_ROOT, convert_images.OUTPUT_ROOT, convert_images.MANIFEST_PATH):
 			if not Path(root).resolve().is_relative_to(SCRATCH.resolve()):

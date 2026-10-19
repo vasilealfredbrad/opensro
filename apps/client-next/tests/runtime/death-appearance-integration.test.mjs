@@ -215,7 +215,8 @@ test("actor-motion drops outgoing live-body locomotion and active installations 
 			duration: () => 1,
 			animation: () => false,
 			plan: () => true,
-			ready: () => true
+			ready: () => true,
+			degrade() {}
 		},
 		skillObjects: { frame: () => null },
 		soundSurface: () => undefined,

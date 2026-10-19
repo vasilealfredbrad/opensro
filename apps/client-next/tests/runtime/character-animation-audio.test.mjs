@@ -1362,6 +1362,10 @@ release
 });
 test("UI sounds decode while suspended and play on the first unlocked activation", async t => {
 	let started = 0, decoded = 0, requests = 0, contexts = 0;
+	// The started sources, so the test can end their voices: the owner keeps
+	// at most 32 playing (audio.ts), fewer than the catalog's handles.
+	/** @type {{ onended?: () => void }[]} */
+	const sources = [];
 	const gains = [],
 		graph = () => ({
 			/*
@@ -1416,7 +1420,7 @@ createBufferSource
 ================
 		*/
 		createBufferSource() {
-			return {
+			const source = {
 				...graph(),
 				/*
 ================
@@ -1433,6 +1437,8 @@ stop
 				*/
 				stop() {}
 			};
+			sources.push( source );
+			return source;
 		}
 		/*
 ================
@@ -1499,8 +1505,18 @@ cancel
 	assert.equal( started, 4 );
 	assert.equal( requests, paths.size );
 	assert.equal( contexts, 1 );
-	for ( const handle of Object.keys( catalog ) ) audio.nativeUi( handle, 1.29, [ 0, 0, 0 ] );
-	audio.step( 1.29, [ 0, 0, 0 ] );
+	// Every handle plays, a voice cap's worth at a time: each batch's voices
+	// end, their gains leaving the mix, before the next batch is cued.
+	const handles = Object.keys( catalog ), VOICE_BATCH = 16;
+	for ( let at = 0; at < handles.length; at += VOICE_BATCH ) {
+		if ( at ) {
+			assert.ok( gains.every( g => g.gain.value === Math.pow( 10, -.5 ) ) );
+			for ( const source of sources.splice( 0 ) ) source.onended?.();
+			gains.length = 0;
+		}
+		for ( const handle of handles.slice( at, at + VOICE_BATCH ) ) audio.nativeUi( handle, 1.29, [ 0, 0, 0 ] );
+		audio.step( 1.29, [ 0, 0, 0 ] );
+	}
 	assert.equal( started, 4 + Object.keys( catalog ).length );
 	audio.step( 1.30, [ 0, 0, 0 ] );
 	assert.equal( started, 4 + Object.keys( catalog ).length, "frame updates never repeat a UI cue" );

@@ -100,8 +100,17 @@ type SessionSnapshot struct {
 	// visibility leg (a fresh value copy per snapshot, like everything
 	// else here). nil = the session never spawns on other clients.
 	Appearance *PeerAppearance
+	// MapHidden (port-only, not native) keeps the session off the beta
+	// player map (playermap.go) and sends it an empty roster: a battle
+	// royale lobby member or participant.
+	MapHidden  bool
 	COS        *PeerCOS
 	Companions []*PeerCOS
+	// Headless (port-only, not native) marks a character no client drives:
+	// a battle royale bot (Ticker.Headless). It is a peer, a mover and a
+	// combat target like any session, but never a viewer: no frame is
+	// built for it, and its SessionID names no transport session.
+	Headless bool
 }
 
 /*
@@ -335,7 +344,11 @@ type Ticker struct {
 	PhaseObserver func(TickTiming)
 	// Commit is the authority's per-tick batch (tick_commit.go).
 	Commit TickCommit
-	clock  tickClock
+	// Headless (port-only, not native) lists the characters no session
+	// drives (the battle royale bots): they join each tick's sessions as
+	// SessionSnapshot.Headless peers. Nil lists none (native).
+	Headless func() []SessionSnapshot
+	clock    tickClock
 
 	// tickIndex is the coordinator-owned server-clock tick counter fed to
 	// the patrol function.
@@ -596,6 +609,12 @@ func (t *Ticker) prepareTick() (int64, []divisionTickWork) {
 	t.tickIndex++
 
 	sessions := t.Source.SnapshotSessions()
+	if t.Headless != nil {
+		for _, headless := range t.Headless() {
+			headless.Headless = true
+			sessions = append(sessions, headless)
+		}
+	}
 	sort.SliceStable(sessions, func(i, j int) bool {
 		if sessions[i].DivisionID != sessions[j].DivisionID {
 			return sessions[i].DivisionID < sessions[j].DivisionID
@@ -845,12 +864,13 @@ func (t *Ticker) runSessionLegs(state *divisionTickState, session SessionSnapsho
 
 	// All authored NPCs (including ferry managers and city gates) must enter
 	// and leave with the viewer throughout travel, not only during login.
-	if frames := NpcScopeFrames(t.Roster, session, nowMs); len(frames) != 0 {
+	// A headless character views nothing (port-only).
+	if frames := NpcScopeFrames(t.Roster, session, nowMs); len(frames) != 0 && !session.Headless {
 		t.Push.PushToSession(session.SessionID, frames)
 	}
 
 	// Leg 1: the per-session NPC entity tick.
-	if session.NpcsEnabled && len(t.Roster) > 0 {
+	if session.NpcsEnabled && len(t.Roster) > 0 && !session.Headless {
 		frames := NpcMoveFrames(t.Roster, session.NpcAnchor, tick)
 		t.Push.PushToSession(session.SessionID, frames)
 	}

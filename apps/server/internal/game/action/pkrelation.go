@@ -29,6 +29,10 @@ playerKillKind
 ================
 */
 func (rt *Runtime) playerKillKind(division string, victim, killer *enterworld.Character) pk.DeathKind {
+	// Port-only: a battle royale kill is a team death, no murder booked.
+	if battleRoyaleOpponents(killer, victim) {
+		return pk.DeathTeam
+	}
 	_, killerCape := rt.playerRelationEquipment(killer)
 	_, victimCape := rt.playerRelationEquipment(victim)
 	if killerCape != 0 && victimCape != 0 &&

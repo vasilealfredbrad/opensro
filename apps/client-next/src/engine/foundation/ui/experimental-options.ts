@@ -106,6 +106,11 @@ export interface ExperimentalOptions {
 	// vectors without re-reading the target (CProjectileTrace_Process 8D8580,
 	// CProjectile_Bezier_Process 879650). Off unless turned on.
 	readonly homingProjectiles: boolean;
+	// Port-only, not native: the compass strip (runtime/ui/hud/compass-hud.ts,
+	// docs/battle-royale.md Stage 9 item 3) shows in the whole world, not
+	// only in Battle Royale lobbies and matches. The original has no
+	// compass. Off unless turned on.
+	readonly compassEverywhere: boolean;
 }
 
 /*
@@ -183,7 +188,8 @@ export function experimentalOptions( value: unknown = null ): ExperimentalOption
 		noticeLinks: record.noticeLinks !== false,
 		shortNotices: record.shortNotices !== false,
 		confirmGuildBan: record.confirmGuildBan !== false,
-		homingProjectiles: enabled( "homingProjectiles" )
+		homingProjectiles: enabled( "homingProjectiles" ),
+		compassEverywhere: enabled( "compassEverywhere" )
 	};
 }
 

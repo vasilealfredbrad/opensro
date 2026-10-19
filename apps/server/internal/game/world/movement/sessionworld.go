@@ -126,6 +126,7 @@ func (p *sessionWorld) WorldSnapshot() simulation.SessionSnapshot {
 	var combatEligible bool
 	var nativeBodyStatus uint8
 	var worldInstance uint32
+	var mapHidden bool
 	p.rt.deps.Read(p.divisionID, func() {
 		world = p.rt.Worlds.Snapshot(key, func() simulation.WorldState { return simulation.SeedWorldState(p.character) })
 		anchor = p.rt.npcAnchor(p.character)
@@ -140,6 +141,7 @@ func (p *sessionWorld) WorldSnapshot() simulation.SessionSnapshot {
 		combatEligible = enterworld.CharacterAlive(p.character) && !p.character.DeletePending
 		nativeBodyStatus = p.character.NativeBodyStatus
 		worldInstance = domain.CharacterWorldInstance(p.character)
+		mapHidden = p.rt.MapHidden != nil && p.rt.MapHidden(p.divisionID, p.character)
 	})
 	var companions []*simulation.PeerCOS
 	if p.rt.CompanionPresentations != nil {
@@ -174,6 +176,7 @@ func (p *sessionWorld) WorldSnapshot() simulation.SessionSnapshot {
 		NpcAnchor:        anchor,
 		NpcsEnabled:      p.rt.npcsEnabled,
 		Appearance:       appearance,
+		MapHidden:        mapHidden,
 		COS:              cos,
 		Companions:       companions,
 	}

@@ -86,7 +86,10 @@ func isVersionMismatch(err error) bool {
 // and join fields plus character campDisbandedAtMs (native _TrainingCamp /
 // _TrainingCampMember / _TrainingCampSubMentorHonorPoint). The upgrade
 // rewrites no record.
-const CurrentVersion = 27
+// Version 28 adds the optional battleRoyaleHeld hold: the real character
+// record held in its own row while a battle royale match character occupies
+// it (port-only, SRO_BATTLE_ROYALE). The upgrade rewrites no record.
+const CurrentVersion = 28
 
 // SkillSeedFunc resolves the current racial base-skill set while preserving
 // any already learned skill identifiers.

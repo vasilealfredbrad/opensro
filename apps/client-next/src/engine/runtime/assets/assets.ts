@@ -272,6 +272,14 @@ export function createAssets(): AssetOwner {
 			return stale;
 		},
 		takeDegradations: () => degradations.splice( 0 ),
+		/*
+		================
+		reportDegradation
+		================
+		*/
+		reportDegradation: ( degradation: Degradation ) => {
+			degradations.push( degradation );
+		},
 
 		/*
 		================

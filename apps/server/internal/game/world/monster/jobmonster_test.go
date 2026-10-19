@@ -42,3 +42,27 @@ func TestJobMonsterRefusesItsOwnSide(t *testing.T) {
 		}
 	}
 }
+
+/*
+================
+TestScriptedJobMonsterRefusesNobody
+
+Port-only, not native: a thief row standing for a battle royale bot (a
+PortCombat projection) refuses no job state, the ordinary player (4)
+included; the same row without one keeps the native refusals.
+================
+*/
+func TestScriptedJobMonsterRefusesNobody(t *testing.T) {
+	var bot Instance
+	bot.Ref.TidWord, bot.Ref.TypeID4 = 0x00c6, 2
+	bot.PortCombat = &PortCombat{}
+	for job := uint8(0); job <= 4; job++ {
+		if bot.JobTargetRefused(job) {
+			t.Errorf("scripted thief refused job %d", job)
+		}
+	}
+	bot.PortCombat = nil
+	if !bot.JobTargetRefused(jobStateSpecial) {
+		t.Fatal("the native thief stopped refusing an ordinary player")
+	}
+}

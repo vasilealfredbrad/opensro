@@ -539,6 +539,11 @@ func (rt *Runtime) planMonsterKillLoot(
 		Angle:    pose.Heading,
 	}
 	now := time.UnixMilli(nowMs)
+	// Port-only: a battle royale match character's kill drops the match
+	// table (battleroyale_combat.go).
+	if drops, match := rt.battleRoyaleLoot(snapshot, monster, at, now); match {
+		return drops
+	}
 	capacity, passes, _ := loot.MonsterDropBudget(monster.Rarity(), monster.Ref.Codename)
 	// Port-only, not native: the beta rate scales a kill's drops, its
 	// assigned rewards and ordinary passes and the capacity bounding them, so

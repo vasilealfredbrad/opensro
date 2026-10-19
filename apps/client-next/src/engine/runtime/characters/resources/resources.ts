@@ -14,6 +14,7 @@ import {
 import { assetRequestBudget } from "@/engine/foundation/assets/asset-budget";
 import { decodeNativeClip } from "@/engine/foundation/animation/native-clip";
 import type { AssetOwner } from "@/engine/contracts/assets";
+import type { Degradation } from "@/engine/contracts/network";
 import type { Renderer } from "@/engine/contracts/runtime";
 // A failed resource has its own retry deadline. It never stops actor reconciliation.
 
@@ -29,6 +30,8 @@ export function createCharacterResources( assets: AssetOwner, renderer: Renderer
 	const loaded = new Set<string>(), wanted = new Set<string>(), planned = new Set<string>();
 	const costs = new Map<string, number>();
 	let plannedBytes = 0, reserved: string | null = null;
+	// The degraded site codes reported this world (degrade).
+	const degradedCodes = new Set<string>();
 	// Ordered requests are priority admission, not a list of everything nearby.
 	// A decoded source is charged what it measured. A source that has never been
 	// decoded reserves one source class, and only the single load slot may hold
@@ -357,6 +360,22 @@ export function createCharacterResources( assets: AssetOwner, renderer: Renderer
 
 		/*
 		================
+		degrade
+
+		A cosmetic step the presentation skipped instead of failing (an
+		equipment visual published for another body), reported once a code
+		per world through the asset owner's degraded queue, which the frontend
+		sends (apps/client-next AGENTS.md, "Degraded reports").
+		================
+		*/
+		degrade( degradation: Degradation ) {
+			if ( degradedCodes.has( degradation.code ) ) return;
+			degradedCodes.add( degradation.code );
+			assets.reportDegradation?.( degradation );
+		},
+
+		/*
+		================
 		reset
 
 		Cancel pending work and release all renderer residency for a new world.
@@ -367,6 +386,7 @@ export function createCharacterResources( assets: AssetOwner, renderer: Renderer
 				assets.cancel( job.id );
 			}
 			job = null;
+			degradedCodes.clear();
 			failures.clear();
 			wanted.clear();
 			loaded.clear();

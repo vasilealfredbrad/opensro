@@ -527,6 +527,9 @@ type Instance struct {
 	// Acquisition uses default tactics plus body radius; follow uses leader action range.
 	SummonSightRange    float64
 	SummonerFollowRange float64
+	// PortCombat is port-only, not native (the battle royale bots,
+	// SRO_BATTLE_ROYALE): nil for every native actor; see portcombat.go.
+	PortCombat *PortCombat
 }
 
 /*

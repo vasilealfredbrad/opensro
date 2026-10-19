@@ -292,7 +292,7 @@ func newGameWorldApplication(
 	}
 	gameplay.deps.BrowserReferences = references
 	ts.SetPublicReferences(references)
-	if err := gameplay.register(ts.Hub, authority.loadQuests); err != nil {
+	if err := gameplay.register(ts.Hub, authority.loadQuests, journal); err != nil {
 		return nil, fmt.Errorf("gameplay wiring: %w", err)
 	}
 	if err := installEnterWorldVerifier(

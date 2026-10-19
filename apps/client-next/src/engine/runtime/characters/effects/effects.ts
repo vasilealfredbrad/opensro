@@ -18,10 +18,12 @@ lifecycles that belong in separate owners (see the size ledger).
 import { trimToEffectBudget } from "@/engine/foundation/animation/effect-room";
 import { castResultAt } from "@/engine/foundation/gameplay/cast-results";
 import { questMarkerEffect } from "@/engine/foundation/gameplay/quest";
+import { devilBuffSkill, devilFormScale } from "@/engine/foundation/gameplay/devil-spirit";
 import { createPresentationIds } from "@/engine/foundation/animation/presentation-ids";
 import { itemEffectClock, type ItemEffectClock } from "@/engine/foundation/animation/item-effect-clock";
 import { createHitLights } from "@/engine/foundation/animation/hit-light";
 import { advanceProjectileCurve } from "@/engine/foundation/animation/projectile-curve";
+import { chainCadence, chainGap, chainHopLeave, chainHopWait } from "@/engine/foundation/animation/chain-cadence";
 import {
 	modelAmbientParticles as ambientModelParticles,
 	modelParticleAttachment
@@ -78,7 +80,15 @@ does not require copying unrelated inventory windows, guild or quest state.
 */
 type EffectGameplay = Pick<
 	GameplayState,
-	"localGid" | "pose" | "casts" | "vitals" | "questMarkers" | "inventory" | "attachedEffects" | "homingProjectiles"
+	| "localGid"
+	| "pose"
+	| "casts"
+	| "vitals"
+	| "questMarkers"
+	| "inventory"
+	| "attachedEffects"
+	| "homingProjectiles"
+	| "chainLightningHop"
 >;
 // TID4 6 in the COS type word: the captured quest monster.
 const CAPTURED_MONSTER_TYPE = 6 << 11;
@@ -226,6 +236,9 @@ const TRADE_THIEF_WORD = 0x10c6, TRADE_HUNTER_WORD = 0x18c6;
 // The client-side token that keys a bandit's imbue deco (server tokens are
 // positive; -1 marks the status and hwan rows).
 const TRADE_IMBUE_TOKEN = -3;
+// Port-only, not native: the devil form's restoration when its script names
+// no duration (the Hwan scale's, 85D890: one second).
+const DEVIL_SCALE_RESTORE_SECONDS = 1;
 
 /*
 ================
@@ -397,6 +410,43 @@ export function createCharacterEffects(
 		number,
 		{ active: boolean; from: number; value: number; progress: number; previous: number; revision: number; }
 	>();
+	// Port-only, not native: the devil form's model scale, by character
+	// (devil-spirit.ts devilFormScale), eased as the Hwan scale is.
+	const devilScales = new Map<
+		number,
+		{ target: number; from: number; value: number; progress: number; previous: number; }
+	>();
+	/*
+	================
+	stepDevilScale
+
+	Port-only, not native: eases gid's model toward its devil form's
+	SCT_CHAR_SCALE while a devil buff runs on it, and back to 1 when the buff
+	ends (expiry, cancel, or a despawn), over the script's own duration.
+	================
+	*/
+	function stepDevilScale( gid: number, effects: Parameters<typeof devilBuffSkill>[1], now: number ) {
+		const skill = devilBuffSkill( gid, effects ),
+			form = skill === undefined ? undefined : devilFormScale( catalog?.[String( skill )]?.stages );
+		const target = form?.scale ?? 1;
+		let row = devilScales.get( gid );
+		if ( !row && target === 1 ) return;
+		if ( !row ) {
+			row = { target: 1, from: 1, value: 1, progress: 1, previous: now };
+			devilScales.set( gid, row );
+		}
+		if ( row.target !== target ) {
+			row.target = target;
+			row.from = row.value;
+			row.progress = 0;
+		}
+		const seconds = form?.seconds ?? DEVIL_SCALE_RESTORE_SECONDS,
+			step = Math.max( 0, now - row.previous ) / (seconds > 0 ? seconds : DEVIL_SCALE_RESTORE_SECONDS);
+		row.progress = Math.min( 1, row.progress + step );
+		row.value = row.progress >= 1 ? target : Math.fround( row.from + (target - row.from) * row.progress );
+		row.previous = now;
+		if ( row.progress >= 1 && target === 1 ) devilScales.delete( gid );
+	}
 	/*
 	================
 	releaseMaterial
@@ -1131,6 +1181,7 @@ export function createCharacterEffects(
 							} );
 						}
 					} else if ( !enabled && view.tint === null ) materials.delete( entity.gid );
+					stepDevilScale( entity.gid, gameplay?.attachedEffects, now );
 					let row = hwan.get( entity.gid );
 					if ( !row && !enabled ) continue;
 					if ( !row ) {
@@ -1156,6 +1207,7 @@ export function createCharacterEffects(
 					row.previous = now;
 				}
 				for ( const gid of hwan.keys() ) if ( !byGid.has( gid ) ) hwan.delete( gid );
+				for ( const gid of devilScales.keys() ) if ( !byGid.has( gid ) ) devilScales.delete( gid );
 				for ( const gid of statuses.keys() ) {
 					if ( !byGid.has( gid ) ) {
 						statuses.delete( gid );
@@ -1669,6 +1721,16 @@ export function createCharacterEffects(
 											rotationRadians: Math.fround( spin * 0.01745329238474369 )
 										} :
 										undefined;
+									// Port-only, not native: the shard's hop period times
+									// this skill's chain (chain-cadence.ts); undefined is native.
+									const cadence = supportedFlight && chain ?
+										chainCadence(
+											gameplay?.chainLightningHop,
+											cast.skill,
+											trigger.at + motion.delayMs / 1000,
+											launch!
+										) :
+										undefined;
 									const route:
 										| NonNullable<
 											import("@/engine/contracts/effects").EffectFlight["moving"]
@@ -1686,7 +1748,8 @@ export function createCharacterEffects(
 												trigger,
 												bone: stage.targetBone ?? null,
 												addHeight: stage.targetAddHeight ?? false,
-												offset: targetOffset
+												offset: targetOffset,
+												...(cadence ? { cadence } : {})
 											} :
 											undefined;
 									const flight: import("@/engine/contracts/effects").EffectFlight | undefined =
@@ -2515,7 +2578,32 @@ export function createCharacterEffects(
 							else {
 								// 8D9360 executes the entire frame step on delay expiry;
 								// neither residual births nor chain hops catch up in a loop.
-								const distance = Math.fround( flight.speed * Math.fround( delta ) );
+								const route = moving.route,
+									cadence = route.kind === "chain" ? route.cadence : undefined;
+								if ( cadence?.departing && route.kind === "chain" ) {
+									// Port-only, not native: a hop held for the shard's
+									// period re-aims at its victim's live socket as it
+									// leaves, then flies to land before the next is due.
+									const entity = route.pending === null ? undefined : byGid.get( route.pending );
+									const endpoint = entity ?
+										stageAnchor(
+											entity,
+											route,
+											{ ...route.trigger, at: now, sampleCurrent: true },
+											moving.pose.yaw
+										) :
+										null;
+									if ( endpoint && projectileSpace( moving.pose.regionId, endpoint.regionId ) ) {
+										flight.destination = endpoint;
+									}
+									chainHopLeave(
+										cadence,
+										flight.speed,
+										chainGap( moving.pose, flight.destination ),
+										now
+									);
+								}
+								const distance = Math.fround( (cadence?.speed ?? flight.speed) * Math.fround( delta ) );
 								moving.age += delta;
 								moving.travelled = Math.fround( moving.travelled + distance );
 								const next = stepMoving( moving.pose, flight.destination, distance );
@@ -2634,6 +2722,9 @@ export function createCharacterEffects(
 												position: moving.pose
 											} );
 										}
+										// The initial arrival only re-aims at the primary; a
+										// victim reached is what a hop period waits after.
+										const struck = route.pending !== null;
 										route.pending = null;
 										while ( route.cursor < route.targets.length ) {
 											const target = route.targets[route.cursor++]!, entity = byGid.get( target );
@@ -2667,6 +2758,11 @@ export function createCharacterEffects(
 											break;
 										}
 										if ( route.pending !== null ) {
+											// Port-only, not native: under the shard's hop period
+											// the bolt waits here, unseen, until its next hop is due.
+											if ( route.cadence && struck ) {
+												moving.delay = chainHopWait( route.cadence, at );
+											}
 											flightPose = sample.pose;
 											elapsed = moving.age;
 											break;
@@ -3007,7 +3103,7 @@ export function createCharacterEffects(
 				weaponHidden: hiddenWeapons.has( gid ),
 				...(spineRotation ? { boneRotation: { bone: SPINE_AIM_BONE, rotation: spineRotation } } : {}),
 				materialTint: materials.get( gid )?.color,
-				scale: hwan.get( gid )?.value ?? 1
+				scale: Math.max( hwan.get( gid )?.value ?? 1, devilScales.get( gid )?.value ?? 1 )
 			};
 		},
 		/*

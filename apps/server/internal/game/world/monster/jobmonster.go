@@ -79,9 +79,18 @@ mode, so neither job monster strikes an ordinary player. Every other
 monster passes. A COS answers both with its owner's state
 (CGObjCOS_ForwardOwnerVf544/548), so a companion is tested with its
 owner's. job is the native state: callers map "no suit" to 4.
+
+PORT-ONLY, NOT NATIVE: an actor with a combat projection (PortCombat, the
+battle royale bots, docs/battle-royale.md stage 7) wears a thief row's
+look but fights for a controller that picks its targets; it refuses
+nobody, or it would chase an ordinary player, have every strike refused
+and walk home (the stage-5 bots did). A nil PortCombat is native.
 ================
 */
 func (i Instance) JobTargetRefused(job uint8) bool {
+	if i.PortCombat != nil {
+		return false
+	}
 	switch {
 	case i.HunterMonster():
 		return job == jobStateTrader || job == jobStateHunter || job == jobStateSpecial

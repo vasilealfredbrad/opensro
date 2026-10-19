@@ -201,6 +201,10 @@ func (t *Ticker) runPeerVisibility(state *divisionTickState, nowMs int64, sessio
 	var candidates []int
 	liveGids := make(map[uint32]bool)
 	for _, viewer := range sessions {
+		if viewer.Headless {
+			// A headless character (port-only) is a peer, never a viewer.
+			continue
+		}
 		shown := state.shownPeers[viewer.SessionID]
 		if shown == nil {
 			shown = make(map[uint32]bool)

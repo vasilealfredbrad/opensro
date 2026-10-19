@@ -13,6 +13,7 @@ go through MagicOption_FormatAvatarParam (553980).
 import type { InventoryItem } from "@/engine/contracts/gameplay";
 import type { TooltipRow } from "./tooltip-rows";
 import { avatarMagicOptionText } from "@/engine/foundation/gameplay/avatar-magic-option";
+import { devilSpiritOptionText } from "@/engine/foundation/gameplay/devil-spirit";
 import type { ItemMagicReference } from "@/engine/foundation/gameplay/item-tooltip-reference";
 
 /*
@@ -132,6 +133,8 @@ export function itemTooltipMagic( item: InventoryItem, text: ( symbol: string ) 
 					`${Math.trunc( amount / 1000 )}${text( "PARAM_SECOND" )}`;
 				value = `+${ref.rangeWords[1]} ${text( "PARAM_REINFORCE" )}(${duration})`;
 			} else if ( n.startsWith( "MATTR_AVATAR_" ) ) value = avatarMagicOptionText( n, amount, text );
+			// Port-only: the Devil's Spirit's later-client options (devil-spirit.ts).
+			else if ( n.startsWith( "MATTR_NASRUN_" ) ) value = devilSpiritOptionText( n, amount );
 		}
 		if ( ref.paramName.includes( "-" ) ) {
 			color = 0xffff4a4a;

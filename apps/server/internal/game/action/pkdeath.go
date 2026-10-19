@@ -24,6 +24,7 @@ package action
 
 import (
 	"opensro.online/server/internal/domain"
+	"opensro.online/server/internal/game/battleroyale"
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/grounditem"
 	"opensro.online/server/internal/game/item/inventory"
@@ -104,6 +105,13 @@ then a murderer's relief.
 */
 func (rt *Runtime) settleDeathCostInDoor(division string, c *enterworld.Character, killer deathKiller, now int64) deathCost {
 	var cost deathCost
+	// Port-only: a match character's death costs nothing and eliminates it
+	// (battleroyale_combat.go); the match items vanish with the character.
+	if battleroyale.Held(c) {
+		c.DeathKind = uint8(pk.DeathTeam)
+		rt.battleRoyaleDeath(division, c, killer, now)
+		return cost
+	}
 	kind := rt.deathKind(division, c, killer)
 	// 4E6EC0 stores the kind at victim+0x1CB4. Natively it runs only with a
 	// killer, and the byte keeps the zero every revival wrote; the port's

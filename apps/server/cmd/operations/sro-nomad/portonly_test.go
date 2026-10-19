@@ -141,3 +141,33 @@ func TestAlchemyMaterialDropsOffJobVariable(t *testing.T) {
 		}
 	}
 }
+
+/*
+================
+TestChainLightningJobVariables
+
+chain_lightning_targets, chain_lightning_range_meters,
+chain_lightning_full_damage and chain_lightning_hop_ms default to 50,
+10000, on and 500 (owner, 2026-10-18); "off" (native) and other values
+pass through as written.
+================
+*/
+func TestChainLightningJobVariables(t *testing.T) {
+	names := []string{"chain_lightning_targets", "chain_lightning_range_meters", "chain_lightning_full_damage", "chain_lightning_hop_ms"}
+	envs := []string{"SRO_CHAIN_LIGHTNING_TARGETS", "SRO_CHAIN_LIGHTNING_RANGE_METERS", "SRO_CHAIN_LIGHTNING_FULL_DAMAGE", "SRO_CHAIN_LIGHTNING_HOP_MS"}
+	for _, tc := range []struct{ env, want [4]string }{
+		{[4]string{"", "", "", ""}, [4]string{"50", "10000", "on", "500"}},
+		{[4]string{"off", "off", "off", "off"}, [4]string{"off", "off", "off", "off"}},
+		{[4]string{"8", "40", "on", "250"}, [4]string{"8", "40", "on", "250"}},
+	} {
+		for i, env := range envs {
+			t.Setenv(env, tc.env[i])
+		}
+		variables := (&deployment{PortOnly: portOnlySettingsFromEnv()}).gameVariables(shardDeployment{})
+		for i, name := range names {
+			if variables[name] != tc.want[i] {
+				t.Fatalf("env %q: %s %v, want %s", tc.env, name, variables[name], tc.want[i])
+			}
+		}
+	}
+}

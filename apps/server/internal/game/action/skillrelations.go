@@ -228,6 +228,11 @@ func (rt *Runtime) playerAttackRefusal(division string, caster, target *enterwor
 	if caster.ID == target.ID {
 		return 0x3006
 	}
+	// Port-only: inside a battle royale arena every other participant is a
+	// free target (battleroyale_combat.go).
+	if battleRoyaleOpponents(caster, target) {
+		return 0
+	}
 	for _, actor := range []*enterworld.Character{caster, target} {
 		at := rt.liveSpawn(simulation.WorldKey(division, actor.Name), actor, now)
 		allowed, known := worldgeom.RegionPlayerCombat(at.RegionID)

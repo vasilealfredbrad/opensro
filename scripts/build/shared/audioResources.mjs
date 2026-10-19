@@ -28,6 +28,7 @@ import {
 	writeJson
 } from "./resourceIo.mjs";
 import { iterateTextDataLines } from "./textDataIo.mjs";
+import { devilSpiritSounds, loadDevilSpiritPresentation } from "../char/devilSpiritPresentation.mjs";
 
 const effectEnvSndPath = path.join( textDataDir, "effectenvsnd.txt" );
 const effectSoundPath = path.join( textDataDir, "effectsound.txt" );
@@ -54,6 +55,7 @@ export async function buildAudioResources() {
 	await buildAlarmSoundResource( copiedSfxAssets );
 	await buildWeatherSoundResources( copiedSfxAssets );
 	await buildNativeDirectSoundResources( copiedSfxAssets );
+	await buildDevilSpiritSoundResources( copiedSfxAssets );
 
 	const effectEnvSndCatalog = await buildEffectEnvSndCatalog( copiedSfxAssets );
 	await writeJson( path.join( audioPublicRoot, "effectenvsnd.json" ), effectEnvSndCatalog );
@@ -656,6 +658,28 @@ export async function buildNativeDirectSoundResources( copiedSfxAssets = new Set
 	};
 	await writeJson( path.join( audioPublicRoot, "native-direct-sounds.json" ), catalog );
 	return catalog;
+}
+
+/*
+================
+buildDevilSpiritSoundResources
+
+Port-only, not native: the devil skills' stage sounds, which only the
+later client's import holds (devilSpiritPresentation.mjs). The skill
+effect records name them under the same public paths v1.150 sounds take.
+================
+*/
+export async function buildDevilSpiritSoundResources( copiedSfxAssets = new Set() ) {
+	const published = [];
+	for ( const { gamePath, source } of devilSpiritSounds( loadDevilSpiritPresentation() ) ) {
+		const publicPath = `/assets/audio/sfx/${gamePath}`;
+		if ( !copiedSfxAssets.has( publicPath ) ) {
+			await copyIntoPublicTree( source, path.join( audioPublicRoot, "sfx", ...gamePath.split( "/" ) ) );
+			copiedSfxAssets.add( publicPath );
+		}
+		published.push( publicPath );
+	}
+	return published;
 }
 
 // CIFPlayerMiniInfo 6B6D00 requests this directly, outside effectsound.txt.

@@ -47,13 +47,16 @@ type areaVictimPlan struct {
 areaStrikePlan
 
 Every victim in selection order, with the monsters' damage sequences and
-the players' hits they index.
+the players' hits they index. hopMs is the port-only Chain Lightning hop
+period (chainlightning.go), 0 natively: the k-th victim's corpse stays k
+periods longer, so the client's bolt still finds it.
 ================
 */
 type areaStrikePlan struct {
 	victims   []areaVictimPlan
 	sequences [][]simulation.MonsterDamagePlan
 	players   []playerHit
+	hopMs     int64
 }
 
 /*
@@ -290,7 +293,7 @@ func (rt *Runtime) publishArea(division string, caster *enterworld.Character, sk
 	var out areaPublication
 	source := enterworld.ObjectIDForCharacter(caster)
 	var deaths []wire.Frame
-	for _, victim := range plan.victims {
+	for index, victim := range plan.victims {
 		if victim.player >= 0 {
 			hit := plan.players[victim.player]
 			if len(hit.struck.impacts) == 0 {
@@ -330,7 +333,9 @@ func (rt *Runtime) publishArea(division string, caster *enterworld.Character, sk
 		}
 		out.targets = append(out.targets, wire.SkillAreaTarget{GID: gid, Impacts: padAreaImpacts(records, impactCount)})
 		if final.Fatal {
-			rt.queueMonsterDefeat(division, gid, now+monsterDeathPresentationRetention.Milliseconds())
+			// A Chain Lightning hop (port-only, hopMs) keeps the k-th
+			// victim's corpse until the client's bolt has reached it.
+			rt.queueMonsterDefeat(division, gid, now+monsterDeathPresentationRetention.Milliseconds()+int64(index)*plan.hopMs)
 			// 4A9C80 publishes LIFE for every alive-to-dead transition, area
 			// victims included; without it the client keeps moving the corpse.
 			// Each victim's drops follow its own LIFE frame, as the native
@@ -378,10 +383,12 @@ and a three-dimensional distance (server 58a81c / 58ab6d..58ac23).
 Monsters and attackable players are candidates alike (areacandidates.go),
 in the port's deterministic order. Shapes 3 and 4 select along a line
 (skillarea_directional.go); reach is the action's base range they measure
-with.
+with. A Chain Lightning row's chain takes the shard's count and radius
+(port-only, not native, chainlightning.go).
 ==================
 */
 func (rt *Runtime) areaVictims(division string, c *enterworld.Character, skill enterworld.SkillRow, primary combatTarget, area enterworld.SkillOffensiveArea, reach float32, nowMs int64) []combatTarget {
+	area = rt.ChainLightning.area(skill, area)
 	validShape := area.Shape >= 1 && area.Shape <= 4 || area.Shape == 6
 	if area.MaxTargets == 0 || !validShape {
 		return nil
@@ -468,6 +475,9 @@ func (rt *Runtime) acceptSkillAreaAt(division string, character, snapshot *enter
 	if skill.Attack.ImpactCount == 0 {
 		return OpResult{}, skillCastRefused
 	}
+	// Port-only, not native: a Chain Lightning row's chain plans with the
+	// shard's falloff too (chainlightning.go); any other area is unchanged.
+	area = rt.ChainLightning.area(skill, area)
 	victims := rt.areaVictims(division, snapshot, skill, primary, area, areaBaseRange(skill, attacker), nowMs)
 	if len(victims) == 0 {
 		return OpResult{}, skillCastRefused
@@ -487,6 +497,7 @@ func (rt *Runtime) acceptSkillAreaAt(division string, character, snapshot *enter
 	if !planned {
 		return OpResult{}, skillCastRefused
 	}
+	plan.hopMs = rt.ChainLightning.hopMs(skill, area)
 	var commit areaCommit
 	var battleFrames []wire.Frame
 	var refusal uint16

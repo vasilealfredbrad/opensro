@@ -93,6 +93,9 @@ func (rt *Runtime) TickHook() simulation.TickHook {
 		step("advanceReturnScrolls", func() { rt.advanceReturnScrolls(nowMs) })
 		step("advanceJobDresses", func() { rt.advanceJobDresses(nowMs) })
 		step("advanceFortressPhases", func() { rt.advanceFortressPhases(nowMs) })
+		// Port-only, not native: the battle royale lobby, zone and exits
+		// (battleroyale.go); a nil mode is one map read.
+		frames("advanceBattleRoyale", rt.advanceBattleRoyale)
 		frames("drainStructureDeaths", rt.drainStructureDeaths)
 		step("advanceFortressStructures", func() { rt.advanceFortressStructures(nowMs) })
 		step("advanceFortressForges", func() { rt.Fortresses.AdvanceItemForges(nowMs) })
@@ -528,6 +531,9 @@ func (rt *Runtime) forgetCharacterLocked(divisionID, characterName string) {
 	rt.battleActors.Delete(simulation.WorldKey(divisionID, characterName))
 	rt.aggressionActors.Delete(simulation.WorldKey(divisionID, characterName))
 	rt.gmSpeeds.Delete(simulation.WorldKey(divisionID, characterName))
+	// Port-only: a battle royale member leaves the lobby, a participant
+	// starts its disconnect grace (battleroyale_match.go).
+	rt.battleRoyaleDisconnect(divisionID, characterName, rt.Now().UnixMilli())
 	rt.leavePopulationSession(divisionID, characterName)
 	rt.forgetCriticalCharacter(divisionID, characterName)
 	var departedGID uint32

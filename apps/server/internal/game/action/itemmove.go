@@ -10,6 +10,7 @@ package action
 
 import (
 	log "github.com/sirupsen/logrus"
+	"opensro.online/server/internal/game/battleroyale"
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/grounditem"
 	"opensro.online/server/internal/game/item/inventory"
@@ -346,6 +347,11 @@ func (rt *Runtime) applyGoldDrop(
 	character *enterworld.Character,
 	requested uint32,
 ) OpResult {
+	// Port-only: a battle royale match character drops no gold (its gold
+	// is the held record's, not its own).
+	if battleroyale.Held(character) {
+		return failureResult(wire.ErrCodeInvalidRequest)
+	}
 	now := rt.Now()
 	var added grounditem.Item
 	var amount uint32

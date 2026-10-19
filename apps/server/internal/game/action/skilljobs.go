@@ -229,5 +229,7 @@ func (rt *Runtime) AdmitCharacterSession(division, name string, session uint64) 
 	if character := rt.findCharacter(division, name); character != nil {
 		rt.bindPetSession(division, character, session, false)
 	}
+	// Port-only: a battle royale participant back within its grace.
+	rt.battleRoyaleReconnect(division, name, rt.Now().UnixMilli())
 	return nil
 }

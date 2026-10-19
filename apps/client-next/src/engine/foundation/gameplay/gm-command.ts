@@ -63,6 +63,10 @@ export interface GmItemReference {
 	readonly codename: string;
 	readonly typeFlags: number;
 	readonly maxStack: number;
+	// Port-only, not native: the English name and required level the GM
+	// panel searches by. Absent from an older server's reference file.
+	readonly name?: string;
+	readonly level?: number;
 }
 
 /*
@@ -83,9 +87,18 @@ export function gmItemReferences( value: unknown ): Map<string, GmItemReference>
 			!Number.isInteger( r.refObjId ) || r.refObjId <= 0 || r.refObjId > 0xffffffff ||
 			!Number.isInteger( r.typeFlags ) || r.typeFlags < 0 || r.typeFlags > 65535 ||
 			!Number.isInteger( r.maxStack ) || r.maxStack < 1 || r.maxStack > 65535 ||
+			(r.name !== undefined && (typeof r.name !== "string" || r.name.length > MAX_GM_NAME_BYTES)) ||
+			(r.level !== undefined && (!Number.isInteger( r.level ) || r.level < 0 || r.level > 255)) ||
 			result.has( r.codename )
 		) throw Error( "Invalid GM item reference" );
-		result.set( r.codename, r );
+		result.set( r.codename, {
+			refObjId: r.refObjId,
+			codename: r.codename,
+			typeFlags: r.typeFlags,
+			maxStack: r.maxStack,
+			...(r.name ? { name: r.name } : {}),
+			...(r.level ? { level: r.level } : {})
+		} );
 	}
 	return result;
 }

@@ -115,6 +115,10 @@ type ItemCommandReference struct {
 	Codename  string `json:"codename"`
 	TypeFlags uint16 `json:"typeFlags"`
 	MaxStack  uint16 `json:"maxStack"`
+	// Name and Level let the GM panel search the catalogue by its English
+	// name (port-only, not native: the native console takes codenames only).
+	Name  string `json:"name,omitempty"`
+	Level uint8  `json:"level,omitempty"`
 }
 
 /*
@@ -133,7 +137,14 @@ func (t *TextdataItems) ItemCommandReferences() []ItemCommandReference {
 		if cap > 65535 {
 			cap = 65535
 		}
-		rows = append(rows, ItemCommandReference{r.RefObjID, r.Codename, r.TypeFlags(), uint16(cap)})
+		level := r.NativeFields.Get("requiredLevel")
+		if level < 0 || level > 255 {
+			level = 0
+		}
+		rows = append(rows, ItemCommandReference{
+			RefObjID: r.RefObjID, Codename: r.Codename, TypeFlags: r.TypeFlags(), MaxStack: uint16(cap),
+			Name: r.Name, Level: uint8(level),
+		})
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].RefObjID < rows[j].RefObjID })
 	return rows

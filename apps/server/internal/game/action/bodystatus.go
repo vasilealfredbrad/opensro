@@ -87,6 +87,11 @@ func (rt *Runtime) MakeGMItem(division, name string, id uint32, amount uint8) bo
 		return false
 	}
 	item := inventory.Item{RefObjID: id, Codename: ref.Codename, TypeFlags: ref.TypeFlags(), Quantity: 1}
+	// Port-only, not native: a port-only row (the Devil's Spirit) is made
+	// with its fixed options; every retail row carries none here.
+	if len(ref.PortOnlyMagicOptions) > 0 {
+		item.MagicOptions = append([]uint64(nil), ref.PortOnlyMagicOptions...)
+	}
 	if inventory.IsEtcStackableTypeFlags(item.TypeFlags) {
 		if amount < 1 {
 			amount = 1
@@ -106,6 +111,9 @@ func (rt *Runtime) MakeGMItem(division, name string, id uint32, amount uint8) bo
 		// monster drop's is (monsterloot.go). Dur_U would read 159/130.
 		item.Durability = combat.DurabilityFromVariance(ref, 0)
 	}
+	// Port-only: a Devil's Spirit is made as a new instance (not yet
+	// awakened, its base OptLevel the console's plus).
+	rt.makeDevilSpirit(&item, false)
 	var added grounditem.Item
 	committed := rt.deps.Update(c, "gm-ground-drop", func() bool {
 		if c.DeletePending || !c.GMPrivilege {

@@ -25,6 +25,26 @@ const COS_INFO_NAME_BUTTON = 26;
 // The Friends list (iffriend.txt id 30, 328 x 256): eleven 23-pixel
 // gil_bar02 rows and a scrollbar between its 16-pixel arrows.
 const FRIEND_VISIBLE_ROWS = 11;
+// Port-only: the skill window's Devil's Spirit tab (no mastery tab uses a
+// negative id), listing the devil skills the player knows (devil-spirit.ts).
+// It sits apart from the mastery tabs, at the right end of their strip, and
+// is wider than them so its label is whole; the worn spirit's icon leads it.
+const DEVIL_SKILL_TAB = -1;
+const DEVIL_SKILL_TAB_TEXT = "Devil's Spirit";
+const DEVIL_SKILL_TAB_WIDTH = 116;
+const DEVIL_SKILL_TAB_ICON = 16;
+// The mastery tabs' strip (skill window): 60-pixel tabs at a 62-pixel pitch,
+// 4 pixels in, 23 above the pane; ifskill.txt GDR_SKILL_FRAME is 364 wide.
+const SKILL_TAB_PITCH = 62;
+const SKILL_TAB_INSET = 4;
+const SKILL_FRAME_WIDTH = 364;
+// A Devil's Spirit tab row: name, stage, description and timing lines.
+const DEVIL_ROW_LINE = 13;
+const DEVIL_STAGE_COLOR: readonly [number, number, number, number] = [ 1, 0.85, 0.45, 1 ];
+const DEVIL_DETAIL_COLOR: readonly [number, number, number, number] = [ 0.75, 0.75, 0.75, 1 ];
+// The skill board's rows: 6F3C30's 55-pixel pitch, four rows a page.
+const SKILL_ROW_PITCH = 55;
+const SKILL_ROWS_VISIBLE = 4;
 // The letter list shares the Friends list's scroll manager (ifletter.txt id
 // 30, 328 x 256): eleven 23-pixel rows. The write window's contents edit is
 // the one multiline letter control.
@@ -195,6 +215,119 @@ import { createCosHud } from "./hud/cos-hud";
 import { createCompactHud, compactHudLayout, compactWindowDrag, compactCloseControl } from "./hud/compact-hud";
 import { fitUiGroup } from "@/engine/foundation/ui/layout";
 import { createExperimentalHud, EXPERIMENTAL_TABS } from "./hud/experimental-hud";
+import {
+	catalogOf,
+	createGmPanelHud,
+	GM_MONSTER_TYPES,
+	GM_PANEL_FIELDS,
+	GM_PANEL_TABS,
+	GM_PANEL_VISIBLE_ROWS,
+	type GmPanelField
+} from "./hud/gm-panel-hud";
+import {
+	BATTLE_ROYALE_BOT_RGBA,
+	BATTLE_ROYALE_BOTS_ID,
+	BATTLE_ROYALE_BOTS_WINDOW_ID,
+	BATTLE_ROYALE_BUILD_PREFIX,
+	BATTLE_ROYALE_BUTTON_WIDTH,
+	BATTLE_ROYALE_FEED_RIGHT,
+	BATTLE_ROYALE_FEED_TOP,
+	BATTLE_ROYALE_HEADLINE_Y,
+	BATTLE_ROYALE_LINE_TOP,
+	BATTLE_ROYALE_OPEN_ID,
+	BATTLE_ROYALE_PANEL,
+	BATTLE_ROYALE_RESULT_ROWS,
+	BATTLE_ROYALE_RESULTS_PANEL,
+	BATTLE_ROYALE_LOBBY_MIN_PX,
+	BATTLE_ROYALE_RING_PX,
+	BATTLE_ROYALE_BOT_CONTROLS,
+	BATTLE_ROYALE_BOT_CONTROL_GAP,
+	BATTLE_ROYALE_BOT_DOT_PREFIX,
+	BATTLE_ROYALE_BOT_DOT_PX,
+	BATTLE_ROYALE_BOT_HIT_PX,
+	BATTLE_ROYALE_BOT_LABELS_MAX,
+	BATTLE_ROYALE_BOT_ROW_HEIGHT,
+	BATTLE_ROYALE_BOT_ROW_WIDTH,
+	BATTLE_ROYALE_BOTS_HINT_PREFIX,
+	BATTLE_ROYALE_BOTS_WINDOW_PREFIX,
+	BATTLE_ROYALE_GRID_UNIT,
+	BATTLE_ROYALE_AIRDROP_ARROW,
+	BATTLE_ROYALE_AIRDROP_LABEL,
+	BATTLE_ROYALE_AIRDROP_MAP_PX,
+	BATTLE_ROYALE_AIRDROP_PX,
+	BATTLE_ROYALE_AIRDROP_RGBA,
+	battleRoyaleAirdropMinimap,
+	battleRoyaleAirdropQuads,
+	battleRoyaleAirdropWorldMap,
+	battleRoyaleBotControlSelected,
+	battleRoyaleBotDots,
+	battleRoyaleBotRequest,
+	battleRoyaleBotSettingsOf,
+	battleRoyaleBotsLabel,
+	battleRoyaleShowsBots,
+	botDotQuad,
+	battleRoyaleBuildOf,
+	battleRoyaleRings,
+	createBattleRoyaleHud,
+	HEADLINE_FONT,
+	headlineExtent,
+	headlineLayout,
+	minimapEllipse,
+	ringQuads,
+	BATTLE_ROYALE_FOG_RGB,
+	scaleHeadline,
+	tintAlpha
+} from "./hud/br-hud";
+import {
+	battleRoyaleAirdropText,
+	battleRoyaleShowsAirdrop,
+	battleRoyaleShowsAirdropLine
+} from "@/engine/foundation/gameplay/battle-royale-airdrop";
+import {
+	AIRDROP_PLANE_MAP_PX,
+	AIRDROP_PLANE_PX,
+	airdropLineQuads,
+	airdropLineSegment,
+	airdropPlane,
+	airdropPlaneQuad
+} from "./hud/br-airdrop-line";
+import {
+	COMPASS_BACKING_RGBA,
+	COMPASS_CENTRE_RGBA,
+	COMPASS_HEIGHT,
+	COMPASS_MAJOR_TICK_PX,
+	COMPASS_MARGIN_PX,
+	COMPASS_MINOR_TICK_PX,
+	COMPASS_NORTH_RGBA,
+	COMPASS_PX_PER_DEGREE,
+	COMPASS_TICK_RGBA,
+	COMPASS_TICK_WIDTH_PX,
+	COMPASS_WIDTH,
+	compassBearing,
+	compassMarks,
+	compassReadout,
+	compassShown,
+	createCompassHud
+} from "./hud/compass-hud";
+import {
+	battleRoyaleBuildName,
+	battleRoyaleBuilds,
+	battleRoyaleFogAlpha,
+	battleRoyaleBotEntity,
+	battleRoyaleBotName,
+	battleRoyaleBotsText,
+	battleRoyaleCanPick,
+	battleRoyaleCanSwitchBots,
+	battleRoyaleHudText,
+	battleRoyaleIsBotName,
+	battleRoyaleGridPoint,
+	battleRoyaleLobbyHint,
+	battleRoyaleOutsideDepth,
+	battleRoyaleOutsideZone,
+	battleRoyaleOwnKills,
+	battleRoyaleResultRows
+} from "@/engine/foundation/gameplay/battle-royale";
+import { GM_CATALOG_PAGE_ROWS, gmItemCategories, gmMonsterCategories } from "@/engine/foundation/gameplay/gm-catalog";
 import { renderScales, type ExperimentalOptions } from "@/engine/foundation/ui/experimental-options";
 import {
 	rememberedWindows,
@@ -329,6 +462,17 @@ import {
 	avatarPartSymbol,
 	grantableAvatarPart
 } from "@/engine/foundation/gameplay/avatar-magic-option";
+import { AVATAR_NEEDS_DRESS_TEXT, avatarEquipVerdict, isAvatarItem } from "@/engine/foundation/gameplay/avatar-equip";
+import {
+	DEVIL_SKILL_HINT_DETAIL,
+	DEVIL_SKILL_HINT_TEXT,
+	DEVIL_SPIRIT_WEAR_EXPIRED_TEXT,
+	devilBuffNewOnExtensionBar,
+	devilSkillInfo,
+	devilSpiritWorn,
+	isDevilSpirit,
+	knownDevilSkills
+} from "@/engine/foundation/gameplay/devil-spirit";
 import {
 	guildBanRefused,
 	guildLevelUpPrice,
@@ -362,7 +506,12 @@ import {
 	jobMenuRows,
 	noJob
 } from "@/engine/foundation/gameplay/job-guild";
-import { isSkinChangeScroll, skinDraftRange, type SkinDraftKey } from "@/engine/foundation/gameplay/skin-change";
+import {
+	isSkinChangeScroll,
+	playerModelSex,
+	skinDraftRange,
+	type SkinDraftKey
+} from "@/engine/foundation/gameplay/skin-change";
 import { repairAllCost } from "@/engine/foundation/gameplay/repair";
 import { createSlotEffectClock } from "./hud/slot-effects";
 import { itemIsRare, itemSlotOverlays, itemSlotWash, slotSeed } from "@/engine/foundation/ui/item-slot-effects";
@@ -571,6 +720,7 @@ import {
 	worldMapPages,
 	worldMapPresentation,
 	worldMapPointMarkers,
+	worldMapEllipse,
 	REVERSE_MAP_MARKER,
 	type MapMarker,
 	mapLabelVisible
@@ -881,6 +1031,11 @@ export function createUi(
 ) {
 	const bugReport = extensions.bugReport;
 	const experimental = createExperimentalHud();
+	const gmPanel = createGmPanelHud();
+	// Port-only, not native: the Battle Royale HUD (br-hud.ts).
+	const battleRoyaleHud = createBattleRoyaleHud();
+	// Port-only, not native: the compass strip (compass-hud.ts, Stage 9).
+	const compassHud = createCompassHud();
 	let consolePhase: 0 | 1 | 2 | 3 = 0, consoleY = -112, consoleLast = 0, consoleText = "", gmObserved = 0;
 	let consoleRows: string[] = [], consoleHistory: string[] = [], consoleHistoryIndex = 0;
 	// +0x7BC, the /Debug flag: the native debug-message switch (690C40 case 0).
@@ -1860,6 +2015,10 @@ export function createUi(
 			cosPlayerPage = 0;
 			cosDraft = view?.gameplay?.cosRecords?.find( r => r.gid === cosGid )?.commandMode ?? 0;
 		}
+		if ( next === "GM Panel" ) {
+			gmPanel.selectTab( gmPanel.state().tab );
+			askGmCatalog();
+		}
 		if ( next === "Auto Potion" ) {
 			potionDraft = autoPotionDraft( view?.gameplay?.autoPotion ?? defaultAutoPotion() );
 			potionCombo = "";
@@ -2032,13 +2191,21 @@ export function createUi(
 		const bag = game.inventory,
 			avatars = game.avatarInventory ?? [],
 			item = (equip ? bag : avatars).find( i => i.slot === source );
-		if ( !item || (item.typeFlags & 0x7fe) !== 0x6ac ) return;
+		if ( !item || !isAvatarItem( item.typeFlags ) ) return;
 		if ( equip ) {
-			if (
-				avatars.some( i => i.typeFlags >>> 11 === item.typeFlags >>> 11 ) ||
-				item.typeFlags >>> 11 === 3 && !avatars.some( i => i.typeFlags >>> 11 === 2 )
-			) return;
-			destination = Array.from( { length: 4 }, ( _, i ) => i ).find( i => !avatars.some( a => a.slot === i ) );
+			const verdict = avatarEquipVerdict( item, avatars );
+			// An attachment without a dress says why it stays in the bag.
+			if ( verdict.kind === "needs-dress" ) {
+				hudMessages.append( hudCopy( AVATAR_NEEDS_DRESS_TEXT ), 0xffff7070 );
+				dirty = true;
+			}
+			// Port-only: an expired Devil's Spirit (devil-spirit.ts).
+			if ( verdict.kind === "expired" ) {
+				hudMessages.append( DEVIL_SPIRIT_WEAR_EXPIRED_TEXT, 0xffff7070 );
+				dirty = true;
+			}
+			if ( verdict.kind !== "send" ) return;
+			destination = verdict.destination;
 		} else {destination ??= Array.from( { length: Math.max( 0, (game.inventorySlotCount ?? 13) - 13 ) }, ( _, i ) =>
 				i + 13 ).find( i =>
 					!bag.some( a =>
@@ -2462,6 +2629,98 @@ export function createUi(
 				if ( command.args.length === 1 ) useInventorySlot( commandInteger( command.args[0]! ) );
 				break;
 		}
+	}
+	/*
+	================
+	askGmCatalog
+
+	Asks the worker for the page the GM panel's current tab shows.
+	================
+	*/
+	function askGmCatalog() {
+		const request = gmPanel.request();
+		if ( request && view?.gameplay?.eligibility?.gm ) sendGameplay( { kind: "gm-catalog", request } );
+	}
+	/*
+	================
+	runGmPanel
+
+	Port-only, not native: the GM panel's controls (gm-panel-hud.ts). Each
+	action is one console line, echoed to the GM console as if typed; the
+	server authorises it like any other GM command.
+	================
+	*/
+	function runGmPanel( id: string ) {
+		const game = view?.gameplay;
+		if ( !game?.eligibility?.gm ) return;
+		if ( id.startsWith( "gm-panel-tab:" ) ) {
+			const tab = GM_PANEL_TABS[Number( id.slice( "gm-panel-tab:".length ) )];
+			if ( !tab ) return;
+			gmPanel.selectTab( tab );
+			askGmCatalog();
+			if ( tab === "Players" ) focusAtEnd( "gm-panel-target", gmPanel.state().fields["gm-panel-target"] );
+			return;
+		}
+		if ( id.startsWith( "gm-panel-category:" ) ) {
+			gmPanel.selectCategory( id.slice( "gm-panel-category:".length ) );
+			askGmCatalog();
+			return;
+		}
+		if ( id.startsWith( "gm-panel-page:" ) ) {
+			const catalog = game.gmCatalog;
+			gmPanel.turnPage(
+				Number( id.slice( "gm-panel-page:".length ) ),
+				Math.ceil( (catalog?.total ?? 0) / GM_CATALOG_PAGE_ROWS )
+			);
+			askGmCatalog();
+			return;
+		}
+		if ( id.startsWith( "gm-panel-row:" ) ) {
+			gmPanel.select( id.slice( "gm-panel-row:".length ) );
+			return;
+		}
+		if ( id.startsWith( "gm-panel-type:" ) ) {
+			const type = GM_MONSTER_TYPES[Number( id.slice( "gm-panel-type:".length ) )];
+			if ( type !== undefined ) gmPanel.selectMonsterType( type );
+			return;
+		}
+		if ( !id.startsWith( "gm-panel-run:" ) ) return;
+		const state = gmPanel.state(), kind = catalogOf( state.tab ), catalog = game.gmCatalog;
+		const row = kind && catalog?.kind === kind ?
+			catalog.rows.find( candidate => candidate.codename === state.browse[kind].selected ) :
+			undefined;
+		const named = {
+			find: "/FINDUSER",
+			goto: "/MOVETOUSER",
+			recall: "/RECALLUSER",
+			totown: "/TOTOWN",
+			ban: "/BAN"
+		} as const;
+		const simple: Record<string, string> = {
+			invisible: "/INVISIBLE",
+			invincible: "/INVINCIBLE",
+			gotown: "/GOTOWN",
+			worldstatus: "/WORLDSTATUS"
+		};
+		const action = id.slice( "gm-panel-run:".length );
+		const line = action === "make" ?
+			gmPanel.makeItem( row ) :
+			action === "spawn" ?
+			gmPanel.loadMonster( row ) :
+			action in named ?
+			gmPanel.named( named[action as keyof typeof named] ) :
+			action === "silk" ?
+			gmPanel.silk() :
+			action === "speed" ?
+			gmPanel.speed() :
+			action === "speed-reset" ?
+			gmPanel.speed( true ) :
+			action === "time" ?
+			gmPanel.time() :
+			simple[action];
+		if ( !line ) return;
+		appendConsoleLine( line );
+		sendGameplay( { kind: "gm-command", line } );
 	}
 	/*
 	================
@@ -3123,12 +3382,25 @@ export function createUi(
 				// match decides which owner takes the line.
 				const command = debugCommand( hud.data()?.commandTable ?? new Map(), consoleText );
 				if ( command ) runDebugCommand( command );
+				else if ( consoleText.trim().toLowerCase() === "/panel" ) setPanel( "GM Panel" );
 				else sendGameplay( { kind: "gm-command", line: consoleText } );
 				consoleText = "";
 				selection = [ 0, 0 ];
 				focusRequest = { id: "gm-input", revision: ++focusRevision, caret: 0 };
 				dirty = true;
 			}
+			return;
+		}
+		if ( id === "submit" && panel === "GM Panel" && focus?.startsWith( "gm-panel-" ) ) {
+			if ( composing ) return;
+			const tab = gmPanel.state().tab;
+			if ( tab === "Items" ) id = "gm-panel-run:make";
+			else if ( tab === "Monsters" ) id = "gm-panel-run:spawn";
+			else return;
+		}
+		if ( panel === "GM Panel" && id.startsWith( "gm-panel-" ) ) {
+			runGmPanel( id );
+			dirty = true;
 			return;
 		}
 		if ( id === "submit" && focus === STALL_CHAT_TEXT ) id = "stall-chat-send";
@@ -3151,6 +3423,28 @@ export function createUi(
 				stallChatScroll.event( { kind: "activate", id } ) ||
 				stallMemberScroll.event( { kind: "activate", id } ))
 		) {
+			dirty = true;
+			return;
+		}
+		// Port-only, not native: a Battle Royale picker button sends the pick;
+		// the worker sends it only while the server would accept it.
+		const battleRoyaleBuild = battleRoyaleBuildOf( id );
+		if ( battleRoyaleBuild !== undefined ) {
+			if ( battleRoyaleCanPick( view.gameplay?.battleRoyale ) ) {
+				sendGameplay( { kind: "battle-royale-pick", build: battleRoyaleBuild } );
+			}
+			dirty = true;
+			return;
+		}
+		// The GM bot settings (Stage 7): the switch, a difficulty, a count step
+		// or preset asks for the whole setting with that one change; the
+		// server's roster answer (0x3FB4) updates the captions.
+		const botSettings = battleRoyaleBotRequest( id, view.gameplay?.battleRoyaleBots );
+		if ( botSettings ) {
+			const game = view.gameplay;
+			if ( battleRoyaleCanSwitchBots( game?.battleRoyale, !!game?.eligibility?.gm ) ) {
+				sendGameplay( { kind: "battle-royale-bots", ...botSettings } );
+			}
 			dirty = true;
 			return;
 		}
@@ -6103,6 +6397,14 @@ export function createUi(
 				dirty = true;
 				return;
 			}
+			if ( event.kind === "scroll" && panel === "GM Panel" ) {
+				const area = controls.find( c => c.id === "gm-panel-list" );
+				if ( area && containsPoint( area.rect, event.x, event.y ) ) {
+					gmPanel.scroll( Math.sign( event.delta ) * 3, view?.gameplay?.gmCatalog?.rows.length ?? 0 );
+					dirty = true;
+				}
+				return;
+			}
 			if ( event.kind === "scroll" && panel === "Blocking" ) {
 				const area = controls.find( c => c.id === "blocking-list" );
 				if ( area && containsPoint( area.rect, event.x, event.y ) ) {
@@ -6129,6 +6431,15 @@ export function createUi(
 					focusRequest = { id: "gm-input", revision: ++focusRevision, caret: line.length };
 					dirty = true;
 				}
+				return;
+			}
+			// Port-only, not native: Ctrl+G toggles the GM panel for a GM.
+			if (
+				event.kind === "key" && view?.session?.phase === "world" && view.gameplay?.eligibility?.gm &&
+				event.code === "KeyG" && event.ctrl && !event.shift
+			) {
+				setPanel( "GM Panel", "toggle" );
+				dirty = true;
 				return;
 			}
 			if (
@@ -7438,7 +7749,10 @@ export function createUi(
 				else if ( event.id === "exchange-gold" ) {
 					exchangeHud.type( event.value, Number( view?.gameplay?.progression?.gold ?? 0 ) );
 				} else if ( event.id === "gm-input" ) consoleText = event.value;
-				else if ( event.id === "chat-text" ) chatText = event.value.slice( 0, 100 );
+				else if ( (GM_PANEL_FIELDS as readonly string[]).includes( event.id ) ) {
+					gmPanel.edit( event.id as GmPanelField, event.value );
+					if ( event.id === "gm-panel-query" ) askGmCatalog();
+				} else if ( event.id === "chat-text" ) chatText = event.value.slice( 0, 100 );
 				else if ( event.id === "chat-target" ) chatTarget = event.value;
 				else if ( event.id === "account" ) account = event.value;
 				else if ( event.id === "password" ) password = event.value;
@@ -7726,6 +8040,63 @@ export function createUi(
 				setPanel( JOB_RANK_PANEL );
 				dirty = true;
 			}
+			// Port-only, not native: joining the Battle Royale lobby opens the
+			// build picker once; it closes when picking ends (br-hud.ts). The
+			// match deadlines are on the simulation clock.
+			const battleRoyale = next.session?.phase === "world" ? next.gameplay?.battleRoyale : undefined;
+			if ( battleRoyaleHud.observe( battleRoyale ) && panel !== BATTLE_ROYALE_PANEL && canLeavePanel() ) {
+				setPanel( BATTLE_ROYALE_PANEL );
+				dirty = true;
+			}
+			if ( panel === BATTLE_ROYALE_PANEL && !battleRoyaleCanPick( battleRoyale ) ) {
+				setPanel( "" );
+				dirty = true;
+			}
+			// The match's final scoreboard opens the results window once.
+			if (
+				battleRoyaleHud.openResults(
+					next.session?.phase === "world" ? next.gameplay?.battleRoyaleScoreboard : undefined,
+					panel !== BATTLE_ROYALE_RESULTS_PANEL && canLeavePanel()
+				)
+			) {
+				setPanel( BATTLE_ROYALE_RESULTS_PANEL );
+				dirty = true;
+			}
+			if (
+				battleRoyaleHud.stepFeed( next.session?.phase === "world" ? next.gameplay?.notices ?? [] : [], now )
+			) {
+				dirty = true;
+			}
+			if (
+				battleRoyaleHud.redraw(
+					battleRoyale,
+					battleRoyaleOutsideZone( battleRoyale, next.gameplay?.pose, next.simulationTimeMs ?? now ),
+					next.simulationTimeMs ?? now,
+					now,
+					next.session?.phase === "world" ? next.gameplay?.battleRoyaleBotPositions : undefined
+				)
+			) dirty = true;
+			// Port-only, not native: the airdrop mark's halo pulses (Stage 8b),
+			// the plane flies its line and the landing counts down (Stage 9).
+			if (
+				battleRoyaleHud.redrawAirdrop(
+					next.session?.phase === "world" &&
+						(battleRoyaleShowsAirdrop( battleRoyale, next.gameplay?.battleRoyaleAirdrop ) ||
+							battleRoyaleShowsAirdropLine( battleRoyale, next.gameplay?.battleRoyaleAirdrop )),
+					now
+				)
+			) dirty = true;
+			// Port-only, not native: the compass strip turns with the camera.
+			if (
+				compassHud.redraw(
+					compassShown(
+						next.session?.phase === "world",
+						!!battleRoyale,
+						experimental.state().saved.compassEverywhere
+					),
+					compassBearing( next.cameraYaw, next.gameplay?.pose?.angle )
+				)
+			) dirty = true;
 			if ( fortressScheduleHud.isOpen() && panel !== FORTRESS_SCHEDULE_PANEL && canLeavePanel() ) {
 				setPanel( FORTRESS_SCHEDULE_PANEL );
 				dirty = true;
@@ -7839,7 +8210,8 @@ export function createUi(
 				view?.blindHeld !== next.blindHeld
 			) dirty = true;
 			if (
-				focus === "chat-text" || focus === "gm-input" || focus === "gold-amount" || focus === "shop-quantity"
+				focus === "chat-text" || focus === "gm-input" || focus === "gold-amount" || focus === "shop-quantity" ||
+				(GM_PANEL_FIELDS as readonly string[]).includes( focus ?? "" )
 			) {
 				if ( !caretDue ) {
 					caretDue = now + 200;
@@ -7919,6 +8291,13 @@ export function createUi(
 				dirty = true;
 			}
 			if ( !stallState?.network.open ) stallHud.resetNetwork();
+			// Port-only: a devil buff the worker put on the extension bar opens a
+			// collapsed bar, so the player sees where it went (devil-spirit.ts).
+			if ( !extOpen && devilBuffNewOnExtensionBar( view?.gameplay?.quickSlots, next.gameplay?.quickSlots ) ) {
+				extOpen = true;
+				persistQuickslots();
+				dirty = true;
+			}
 			// 69FBB0: the exchange opens beside the inventory tab.
 			if ( exchangeHud.opened( !!next.gameplay?.exchange?.open ) && panel !== "Inventory" ) {
 				setPanel( "Inventory" );
@@ -8252,6 +8631,8 @@ export function createUi(
 				} else {
 					hudMessages.reset();
 					notificationBanner.reset();
+					battleRoyaleHud.reset();
+					compassHud.reset();
 					uniqueBanner.reset();
 					questBanner.reset();
 					questTimers.reset();
@@ -8415,7 +8796,9 @@ export function createUi(
 			const game = next.gameplay,
 				pose = game?.pose,
 				local = game?.vitals.find( v => v.gid === game.localGid ),
-				target = next.entities.find( e => e.gid === game?.target );
+				found = next.entities.find( e => e.gid === game?.target ),
+				// Port-only: a Battle Royale bot's target window shows its roster name.
+				target = found && battleRoyaleBotEntity( found, game?.battleRoyaleBots );
 			const training = skillTraining.read( game?.skillCatalog, game?.skills );
 			itemMall.observe( game?.itemMall );
 			if ( game?.itemMall && !game.inventoryPending ) {
@@ -8447,6 +8830,28 @@ export function createUi(
 						color: [ 1, 1, 1, alpha ]
 					} );
 				}
+			}
+			// Port-only, not native: an alive Battle Royale participant outside
+			// the current zone stands in its fog, a grey veil thickening with
+			// the distance out (battleRoyaleFogAlpha), with a faint red pulse
+			// over it for the damage, under the whole HUD (br-hud.ts tintAlpha).
+			const outsideDepth = phase === "world" ?
+				battleRoyaleOutsideDepth( game?.battleRoyale, pose, next.simulationTimeMs ?? now ) :
+				0;
+			if ( outsideDepth > 0 ) {
+				quads.push( {
+					rect: full,
+					uv: [ 0, 0, 1, 1 ],
+					clip: full,
+					texture: "",
+					color: [ ...BATTLE_ROYALE_FOG_RGB, battleRoyaleFogAlpha( outsideDepth ) ]
+				}, {
+					rect: full,
+					uv: [ 0, 0, 1, 1 ],
+					clip: full,
+					texture: "",
+					color: [ .85, 0, 0, tintAlpha( now ) ]
+				} );
 			}
 			/*
 			================
@@ -9084,6 +9489,257 @@ export function createUi(
 			}
 			/*
 			================
+			drawBotSettings
+
+			Port-only, not native: a GM's bot settings row (br-hud.ts, Stage 7)
+			at x, y, its control ids under prefix: the difficulties, the count
+			steps around the echoed count and the presets. The difficulty and
+			preset the server's roster echoes are drawn selected.
+			================
+			*/
+			function drawBotSettings( prefix: string, x: number, y: number ) {
+				const settings = battleRoyaleBotSettingsOf( game?.battleRoyaleBots );
+				let left = x;
+				for ( const control of BATTLE_ROYALE_BOT_CONTROLS ) {
+					if ( control.value ) {
+						quads.push(
+							...text.quads(
+								String( settings.count ),
+								[ left, y, control.width, BATTLE_ROYALE_BOT_ROW_HEIGHT ],
+								full,
+								white,
+								{ hAlign: 1, vAlign: 1 }
+							)
+						);
+					} else {
+						button(
+							prefix + control.key,
+							control.caption,
+							left,
+							y,
+							control.width,
+							false,
+							battleRoyaleBotControlSelected( control, settings )
+						);
+					}
+					left += control.width + BATTLE_ROYALE_BOT_CONTROL_GAP;
+				}
+			}
+			/*
+			================
+			drawBattleRoyale
+
+			Port-only, not native: the Battle Royale lines (br-hud.ts). The
+			countdown or the result is a large centred headline on the notice
+			banner's art; the zone line or the lobby hint (with the picker's
+			button) sits at the top centre; the kill feed stacks at the top
+			right, left of the minimap. Compact mode stacks the lines from top
+			down; both return where the top centre lines end. Nothing draws
+			without a match.
+			================
+			*/
+			function drawBattleRoyale( top?: number ) {
+				const state = game?.battleRoyale,
+					lines = battleRoyaleHudText(
+						state,
+						quickslotTime,
+						battleRoyaleOwnKills( game?.battleRoyaleScoreboard ),
+						game?.battleRoyaleBots
+					);
+				const lineHeight = text.extentHeight( 0 ), pad = 4;
+				let bottom = top ?? 0;
+				const feed = battleRoyaleHud.feed( now );
+				// A player near the lobby who has not joined reads how to join.
+				const localPose = view?.entities.find( e => e.gid === game?.localGid );
+				const grid = localPose ? battleRoyaleGridPoint( localPose ) : null;
+				const nearLobby = grid ? battleRoyaleLobbyHint( game?.battleRoyaleLobby, state, grid.x, grid.z ) : "";
+				if ( !state && !feed.length && !nearLobby ) return bottom;
+				const backing = [ 0, 0, 0, .55 ] as const;
+				const row = top ?? BATTLE_ROYALE_LINE_TOP;
+				const hint = lines.status || lines.lobby || nearLobby;
+				if ( hint ) {
+					// A GM lobby member gets the bot switch beside the picker's button.
+					const switchBots = !!lines.lobby && battleRoyaleCanSwitchBots( state, !!game?.eligibility?.gm );
+					const width = Math.ceil( text.run( hint ).width ),
+						buttonWidth = lines.lobby ? (BATTLE_ROYALE_BUTTON_WIDTH + 8) * (switchBots ? 2 : 1) : 0,
+						left = (w >> 1) - ((width + buttonWidth) >> 1);
+					rect( [ left - 8, row - pad, width + 16, lineHeight + pad * 2 ], backing );
+					quads.push( ...text.quads( hint, [ left, row, width, lineHeight ], full, white, { vAlign: 0 } ) );
+					if ( lines.lobby ) {
+						button(
+							BATTLE_ROYALE_OPEN_ID,
+							"Choose build",
+							left + width + 16,
+							row + (lineHeight >> 1) - 12,
+							BATTLE_ROYALE_BUTTON_WIDTH
+						);
+					}
+					if ( switchBots ) {
+						button(
+							BATTLE_ROYALE_BOTS_ID,
+							battleRoyaleBotsLabel( game?.battleRoyaleBots ),
+							left + width + 24 + BATTLE_ROYALE_BUTTON_WIDTH,
+							row + (lineHeight >> 1) - 12,
+							BATTLE_ROYALE_BUTTON_WIDTH
+						);
+					}
+					bottom = row + Math.max( lineHeight + pad, 24 ) + 8;
+					// The airdrop's landing countdown (Stage 9) or its distance (Stage
+					// 8b), centred under the zone line.
+					const airdrop = battleRoyaleAirdropText(
+						state,
+						game?.battleRoyaleAirdrop,
+						localPose,
+						quickslotTime
+					);
+					if ( airdrop ) {
+						const airdropWidth = Math.ceil( text.run( airdrop ).width ),
+							airdropLeft = (w >> 1) - (airdropWidth >> 1);
+						rect( [ airdropLeft - 8, bottom - pad, airdropWidth + 16, lineHeight + pad * 2 ], backing );
+						quads.push(
+							...text.quads(
+								airdrop,
+								[ airdropLeft, bottom, airdropWidth, lineHeight ],
+								full,
+								BATTLE_ROYALE_AIRDROP_RGBA,
+								{ vAlign: 0 }
+							)
+						);
+						bottom += lineHeight + pad + 8;
+					}
+					// The GM's bot settings row sits centred under the hint (Stage 7).
+					if ( switchBots ) {
+						const rowLeft = Math.max( 8, (w >> 1) - (BATTLE_ROYALE_BOT_ROW_WIDTH >> 1) );
+						rect( [ rowLeft - 8, bottom - pad, BATTLE_ROYALE_BOT_ROW_WIDTH + 16, 24 + pad * 2 ], backing );
+						drawBotSettings( BATTLE_ROYALE_BOTS_HINT_PREFIX, rowLeft, bottom );
+						bottom += 24 + pad + 8;
+					}
+				}
+				if ( lines.headline ) {
+					const headlineLine = text.extentHeight( HEADLINE_FONT ),
+						[width, height] = headlineExtent(
+							text.run( lines.headline, 0, HEADLINE_FONT ).width,
+							headlineLine
+						),
+						y = top === undefined ? Math.round( h * BATTLE_ROYALE_HEADLINE_Y ) : bottom;
+					paths.push( ...notificationBannerPaths );
+					quads.push(
+						...uniqueBannerQuads(
+							lines.headline,
+							1,
+							w,
+							h,
+							width,
+							height,
+							notificationBannerPaths,
+							resources.size,
+							y,
+							[ 128, 45, 67 ]
+						),
+						...scaleHeadline(
+							text.quads( lines.headline, headlineLayout( w, headlineLine ), full, white, {
+								fontIndex: HEADLINE_FONT,
+								hAlign: 1,
+								vAlign: 0
+							} ),
+							y,
+							full
+						)
+					);
+					// Only compact mode stacks under the headline; the full HUD's sits
+					// mid-screen, and what follows the lines (the compass) stays at
+					// the top.
+					if ( top !== undefined ) bottom = y + height + 12;
+				}
+				// The kill feed, newest at the bottom, right-aligned.
+				const feedRight = top === undefined ? w - BATTLE_ROYALE_FEED_RIGHT : w - 8;
+				let feedTop = top === undefined ? BATTLE_ROYALE_FEED_TOP : bottom;
+				for ( const line of feed ) {
+					const width = Math.ceil( text.run( line.text ).width );
+					rect( [ feedRight - width - 8, feedTop - 2, width + 16, lineHeight + 4 ], [
+						0,
+						0,
+						0,
+						backing[3] * line.alpha
+					] );
+					quads.push(
+						...text.quads( line.text, [ feedRight - width, feedTop, width, lineHeight ], full, [
+							1,
+							1,
+							1,
+							line.alpha
+						], { vAlign: 0 } )
+					);
+					feedTop += lineHeight + 6;
+				}
+				if ( top !== undefined && feed.length ) bottom = feedTop + 6;
+				return bottom;
+			}
+			/*
+			================
+			drawCompass
+
+			Port-only, not native: the compass strip (compass-hud.ts, Stage 9
+			item 3) centred at top: the ticks and the eight directions
+			scrolling with the bearing, the centre mark, and under it the
+			bearing and the position. Returns where it ends; nothing draws
+			outside a Battle Royale lobby or match unless the Experimental
+			"Compass everywhere" row is on.
+			================
+			*/
+			function drawCompass( top: number ): number {
+				if (
+					!pose ||
+					!compassShown(
+						next.session?.phase === "world",
+						!!game?.battleRoyale,
+						experimental.state().saved.compassEverywhere
+					)
+				) return top;
+				const bearing = compassBearing( next.cameraYaw, pose.angle ),
+					lineHeight = text.extentHeight( 0 ),
+					y = top + COMPASS_MARGIN_PX,
+					width = Math.min( COMPASS_WIDTH, w - 16 ),
+					left = (w >> 1) - (width >> 1),
+					strip: UiRect = [ left, y, width, COMPASS_HEIGHT ];
+				rect( strip, COMPASS_BACKING_RGBA );
+				for ( const mark of compassMarks( bearing, width, COMPASS_PX_PER_DEGREE ) ) {
+					const x = left + Math.round( mark.offset ),
+						tick = mark.label ? COMPASS_MAJOR_TICK_PX : COMPASS_MINOR_TICK_PX;
+					rect(
+						[ x, y + COMPASS_HEIGHT - tick, COMPASS_TICK_WIDTH_PX, tick ],
+						COMPASS_TICK_RGBA,
+						"",
+						[ 0, 0, 1, 1 ],
+						strip
+					);
+					if ( !mark.label ) continue;
+					const labelWidth = Math.ceil( text.run( mark.label ).width );
+					quads.push(
+						...text.quads(
+							mark.label,
+							[ x - (labelWidth >> 1), y + 1, labelWidth, lineHeight ],
+							strip,
+							mark.degrees === 0 ? COMPASS_NORTH_RGBA : white,
+							{ vAlign: 0 }
+						)
+					);
+				}
+				rect( [ (w >> 1) - 1, y, 2, COMPASS_HEIGHT ], COMPASS_CENTRE_RGBA );
+				const readout = compassReadout( bearing, pose ),
+					readoutWidth = Math.ceil( text.run( readout ).width ),
+					readoutTop = y + COMPASS_HEIGHT + COMPASS_MARGIN_PX,
+					readoutLeft = (w >> 1) - (readoutWidth >> 1);
+				rect( [ readoutLeft - 6, readoutTop - 2, readoutWidth + 12, lineHeight + 4 ], COMPASS_BACKING_RGBA );
+				quads.push(
+					...text.quads( readout, [ readoutLeft, readoutTop, readoutWidth, lineHeight ], full, white, {
+						vAlign: 0
+					} )
+				);
+				return readoutTop + lineHeight + COMPASS_MARGIN_PX;
+			}
+			/*
+			================
 			comboBox
 			================
 			*/
@@ -9539,6 +10195,14 @@ export function createUi(
 			equipmentWarningVisible = false;
 			cautionVisible = false;
 			slotEffects.beginPaint();
+			// The local character's sex for item requirements: the worn body's
+			// player model first (a Battle Royale race swap changes the body in
+			// place), the character list's gender (0 male) before the models arrive.
+			const listGender = next.session?.characters?.find( row => row.name === next.session?.character )?.gender;
+			const localSex = playerModelSex(
+				next.gameplay?.playerModels ?? [],
+				next.entities.find( e => e.gid === next.gameplay?.localGid )?.refObjId
+			) ?? (listGender === 0 ? 1 : listGender === 1 ? 0 : undefined);
 			/*
 			================
 			equipmentOverlay
@@ -9549,10 +10213,9 @@ export function createUi(
 				r: UiRect
 			) {
 				if ( !item || !next.gameplay ) return;
-				const gender = next.session?.characters?.find( row => row.name === next.session?.character )?.gender;
 				const overlay = itemEquipmentOverlay( item, next.gameplay.progression ?? { masteries: [] }, {
 					country: next.gameplay.guide?.country,
-					sex: gender === 0 ? 1 : gender === 1 ? 0 : undefined
+					sex: localSex
 				}, next.gameplay.inventory );
 				if ( overlay ) {
 					const warning = overlay === "icon_item_warning";
@@ -10559,6 +11222,7 @@ export function createUi(
 				}
 				if ( hudData ) {
 					if ( !compact ) drawTransientBanners();
+					if ( !compact ) compassHud.below( drawBattleRoyale() );
 					const regionArt = hudData.root.GDR_REGION_INFO_VIEW;
 					if ( regionArt?.texture ) paths.push( regionArt.texture );
 					const banner = regionBanner.value();
@@ -10744,7 +11408,11 @@ export function createUi(
 					// Banners own a separate strip below player, pet, target buffs and telemetry.
 					compactTelemetryTop = Math.max( targetBottom, compactTelemetryTop );
 					targetBottom = drawTransientBanners( compactTelemetryTop + HUD_TOOLS_HEIGHT + 12 );
+					targetBottom = drawCompass( drawBattleRoyale( targetBottom ) );
 				}
+				// The full HUD's compass goes under the Battle Royale lines and the
+				// target window with its buffs, at the very top without either.
+				if ( !compact && hudData ) drawCompass( compassHud.top( compactTelemetryTop - COMPASS_MARGIN_PX ) );
 				const barX = compact ? 0 : Math.trunc( (w - 800) / 2 ), barY = compact ? compact.top : h - 52;
 				if ( hudData && !compact ) {
 					retainedHud( barLayoutCache, [
@@ -11287,6 +11955,139 @@ export function createUi(
 				// clamped delta (579920); keep the displayed pan so reversing never has to
 				// unwind an overshoot first.
 				if ( mapProjection && !mapFollow ) mapPan = mapProjection.pan;
+				// Port-only, not native: the Battle Royale zone rings over the page,
+				// under the markers (br-hud.ts). The lobby, too small at map scale,
+				// keeps a minimum on-screen radius so everyone can find it.
+				const zoneClip: UiRect = [ mapLeft + 6, mapTop + 34, mapWidth - 12, mapHeight - 40 ];
+				const mapRings = mapProjection && pose ?
+					battleRoyaleRings( game?.battleRoyale, quickslotTime, game?.battleRoyaleLobby ).flatMap( ring => {
+						const ellipse = worldMapEllipse(
+							{ page: mapPage, clip: zoneClip, pan: mapPan, center: mapCenter ?? pose },
+							ring.circle
+						);
+						return ringQuads(
+							ring.lobby ?
+								{
+									...ellipse,
+									rx: Math.max( ellipse.rx, BATTLE_ROYALE_LOBBY_MIN_PX ),
+									ry: Math.max( ellipse.ry, BATTLE_ROYALE_LOBBY_MIN_PX )
+								} :
+								ellipse,
+							ring.color,
+							zoneClip,
+							BATTLE_ROYALE_RING_PX
+						);
+					} ) :
+					[];
+				// Port-only, not native: the living bots (0x3FB5) as red dots over
+				// the rings, for a participant of a running match (br-hud.ts). Their
+				// names show beside every dot up to BATTLE_ROYALE_BOT_LABELS_MAX
+				// bots, above that only beside the hovered one.
+				const botPositions = game?.battleRoyaleBotPositions;
+				const mapBots = mapOpen && mapProjection && pose &&
+						battleRoyaleShowsBots( game?.battleRoyale, botPositions, quickslotTime ) ?
+					battleRoyaleBotDots(
+						worldMapEllipse(
+							{ page: mapPage, clip: zoneClip, pan: mapPan, center: mapCenter ?? pose },
+							BATTLE_ROYALE_GRID_UNIT
+						),
+						botPositions,
+						game?.battleRoyaleBots,
+						zoneClip
+					) :
+					[];
+				// Port-only, not native: the marked airdrop (0x3FB6) as a pulsing
+				// gold diamond over the rings and the bots, labelled (br-hud.ts).
+				const airdropMark = mapOpen && mapProjection && pose &&
+						battleRoyaleShowsAirdrop( game?.battleRoyale, game?.battleRoyaleAirdrop ) ?
+					battleRoyaleAirdropWorldMap(
+						worldMapEllipse(
+							{ page: mapPage, clip: zoneClip, pan: mapPan, center: mapCenter ?? pose },
+							BATTLE_ROYALE_GRID_UNIT
+						),
+						game.battleRoyaleAirdrop,
+						zoneClip
+					) :
+					null;
+				// Port-only, not native: an incoming airdrop's flight line, dashed
+				// gold across the page, with the plane on it (br-airdrop-line.ts,
+				// Stage 9 item 5).
+				const incoming = game?.battleRoyaleAirdrop;
+				const flightOrigin = mapOpen && mapProjection && pose &&
+						battleRoyaleShowsAirdropLine( game?.battleRoyale, incoming ) ?
+					worldMapEllipse(
+						{ page: mapPage, clip: zoneClip, pan: mapPan, center: mapCenter ?? pose },
+						BATTLE_ROYALE_GRID_UNIT
+					) :
+					null;
+				const flightSegment = flightOrigin && incoming?.state === "incoming" ?
+					airdropLineSegment( flightOrigin, incoming.line, zoneClip ) :
+					null;
+				const flightPlane = flightOrigin && incoming?.state === "incoming" ?
+					airdropPlane( flightOrigin, incoming, quickslotTime, zoneClip ) :
+					null;
+				if ( flightPlane ) paths.push( BATTLE_ROYALE_AIRDROP_ARROW );
+				const mapFlightQuads = [
+					...(flightSegment ? airdropLineQuads( flightSegment, zoneClip ) : []),
+					...(flightPlane && resources.has( BATTLE_ROYALE_AIRDROP_ARROW ) ?
+						[
+							airdropPlaneQuad( flightPlane, AIRDROP_PLANE_MAP_PX, BATTLE_ROYALE_AIRDROP_ARROW, zoneClip )
+						] :
+						[])
+				];
+				const airdropLabelWidth = airdropMark ? Math.ceil( text.run( BATTLE_ROYALE_AIRDROP_LABEL ).width ) : 0,
+					airdropLabelHeight = text.extentHeight( 0 );
+				const mapAirdropQuads = airdropMark ?
+					[
+						...battleRoyaleAirdropQuads( airdropMark, BATTLE_ROYALE_AIRDROP_MAP_PX, zoneClip, now ),
+						...text.quads(
+							BATTLE_ROYALE_AIRDROP_LABEL,
+							[
+								airdropMark.x - (airdropLabelWidth >> 1),
+								airdropMark.y - BATTLE_ROYALE_AIRDROP_MAP_PX - airdropLabelHeight,
+								airdropLabelWidth,
+								airdropLabelHeight
+							],
+							zoneClip,
+							BATTLE_ROYALE_AIRDROP_RGBA,
+							{ hAlign: 0, vAlign: 0 }
+						)
+					] :
+					[];
+				const botLabelsAll = mapBots.length <= BATTLE_ROYALE_BOT_LABELS_MAX;
+				const mapBotQuads = mapBots.flatMap( dot => {
+					const dotQuad = botDotQuad( dot, zoneClip );
+					if ( !dot.name || !botLabelsAll && hover !== BATTLE_ROYALE_BOT_DOT_PREFIX + dot.gid ) {
+						return [ dotQuad ];
+					}
+					const width = Math.ceil( text.run( dot.name ).width ), height = text.extentHeight( 0 );
+					return [
+						dotQuad,
+						...text.quads(
+							dot.name,
+							[ dot.x - (width >> 1), dot.y - BATTLE_ROYALE_BOT_DOT_PX - height, width, height ],
+							zoneClip,
+							BATTLE_ROYALE_BOT_RGBA,
+							{ hAlign: 0, vAlign: 0 }
+						)
+					];
+				} );
+				if ( !botLabelsAll ) {
+					for ( const dot of mapBots ) {
+						if ( !dot.name ) continue;
+						mapHits.push( {
+							id: BATTLE_ROYALE_BOT_DOT_PREFIX + dot.gid,
+							label: dot.name,
+							rect: [
+								dot.x - BATTLE_ROYALE_BOT_HIT_PX / 2,
+								dot.y - BATTLE_ROYALE_BOT_HIT_PX / 2,
+								BATTLE_ROYALE_BOT_HIT_PX,
+								BATTLE_ROYALE_BOT_HIT_PX
+							],
+							kind: "region"
+						} );
+					}
+				}
 				// 57E9A0 builds the 6200 overlay in ascending record id, so the SN_ labels
 				// (11xxx-14xxx) enter before the kind-2 icons (92xxx) and the icons paint
 				// over them; 57FE60 then runs every marker pass after that whole overlay.
@@ -11313,6 +12114,10 @@ export function createUi(
 								{ fontIndex: entry.font, hAlign: 0, vAlign: 0 }
 							);
 						} ),
+						...mapRings,
+						...mapBotQuads,
+						...mapFlightQuads,
+						...mapAirdropQuads,
 						...mapProjection.markers
 					] :
 					[];
@@ -11355,7 +12160,8 @@ export function createUi(
 						} );
 					}
 				}
-				if ( mapOpen ) paths.push( ...mapImages.map( q => q.texture ) );
+				// The zone rings are untextured ("" is white): they demand nothing.
+				if ( mapOpen ) paths.push( ...mapImages.flatMap( q => q.texture ? [ q.texture ] : [] ) );
 				else if ( pose ) {
 					worldMapDemand(
 						mapPage,
@@ -11480,6 +12286,74 @@ export function createUi(
 								marker.rotation
 							);
 						}
+						// Port-only, not native: the Battle Royale lobby and zone circles
+						// under the local sign, masked to the radar (br-hud.ts).
+						if ( resources.has( mask.texture ) ) {
+							for (
+								const ring of battleRoyaleRings(
+									game?.battleRoyale,
+									quickslotTime,
+									game?.battleRoyaleLobby
+								)
+							) {
+								const ellipse = minimapEllipse( pose, ring.circle, minimapZoom, [ cx, cy ] );
+								if ( ellipse ) {
+									quads.push(
+										...ringQuads( ellipse, ring.color, inner, BATTLE_ROYALE_RING_PX, mask )
+									);
+								}
+							}
+							// The living bots as red dots over the rings (Stage 7).
+							const botPositions = game?.battleRoyaleBotPositions;
+							const origin = battleRoyaleShowsBots( game?.battleRoyale, botPositions, quickslotTime ) ?
+								minimapEllipse( pose, BATTLE_ROYALE_GRID_UNIT, minimapZoom, [ cx, cy ] ) :
+								null;
+							if ( origin && botPositions ) {
+								for (
+									const dot of battleRoyaleBotDots(
+										origin,
+										botPositions,
+										game?.battleRoyaleBots,
+										inner
+									)
+								) quads.push( botDotQuad( dot, inner, mask ) );
+							}
+							// An incoming airdrop's flight line and plane over the bots
+							// (Stage 9 item 5).
+							const airdrop = game?.battleRoyaleAirdrop;
+							if ( battleRoyaleShowsAirdropLine( game?.battleRoyale, airdrop ) ) {
+								const grid = minimapEllipse( pose, BATTLE_ROYALE_GRID_UNIT, minimapZoom, [ cx, cy ] );
+								const segment = grid && airdropLineSegment( grid, airdrop.line, inner );
+								if ( segment ) quads.push( ...airdropLineQuads( segment, inner, mask ) );
+								const plane = grid && airdropPlane( grid, airdrop, quickslotTime, inner );
+								if ( plane ) {
+									paths.push( BATTLE_ROYALE_AIRDROP_ARROW );
+									if ( resources.has( BATTLE_ROYALE_AIRDROP_ARROW ) ) {
+										quads.push(
+											airdropPlaneQuad(
+												plane,
+												AIRDROP_PLANE_PX,
+												BATTLE_ROYALE_AIRDROP_ARROW,
+												inner,
+												mask
+											)
+										);
+									}
+								}
+							}
+							// The marked airdrop over the bots, or the rim arrow toward
+							// it beyond the radar (Stage 8b).
+							if ( battleRoyaleShowsAirdrop( game?.battleRoyale, airdrop ) ) {
+								const grid = minimapEllipse( pose, BATTLE_ROYALE_GRID_UNIT, minimapZoom, [ cx, cy ] );
+								const mark = grid && battleRoyaleAirdropMinimap( grid, airdrop, [ cx, cy ] );
+								if ( mark?.rim ) paths.push( BATTLE_ROYALE_AIRDROP_ARROW );
+								if ( mark && (!mark.rim || resources.has( BATTLE_ROYALE_AIRDROP_ARROW )) ) {
+									quads.push(
+										...battleRoyaleAirdropQuads( mark, BATTLE_ROYALE_AIRDROP_PX, inner, now, mask )
+									);
+								}
+							}
+						}
 						sprite(
 							[ cx - 8, cy - 8, 16, 16 ],
 							ROOT + "interface/minimap/mm_sign_character.png",
@@ -11584,6 +12458,319 @@ export function createUi(
 							node.id === EXPERIMENTAL_MENU_ID ? "Experimental" : hudCopy( node.text )
 						);
 					}
+					endWindow( admission );
+				}
+				// Port-only, not native: the GM panel (gm-panel-hud.ts). Drawn only for
+				// a GM; the server refuses its commands from anyone else regardless.
+				if ( panel === "GM Panel" && hudData && game?.eligibility?.gm ) {
+					const admission = beginWindow();
+					const width = 800, height = 660;
+					const [px, py] = windowOrigin( "GM Panel", [
+						Math.max( 0, (w - width) / 2 ),
+						Math.max( 0, (h - height) / 2 ),
+						width,
+						height
+					] );
+					const state = gmPanel.state(), kind = catalogOf( state.tab ), grey = [ .7, .7, .7, 1 ] as const;
+					windowBox( "GM Panel", px, py, width, height );
+					closeButton( px + width - 26, py + 10, panelCloseId( "GM Panel" ) );
+					/*
+					================
+					gmField
+
+					A one-line edit box, drawn as the chat window's editBox.
+					================
+					*/
+					const gmField = ( id: GmPanelField, hint: string, x: number, y: number, fieldWidth: number ) => {
+						const value = state.fields[id], r: UiRect = [ x, y, fieldWidth, 26 ];
+						controls.push( { id, label: hint, kind: "text", value, rect: r, maxLength: 64 } );
+						rect( r, [ .02, .03, .02, 1 ] );
+						quads.push(
+							...text.quads(
+								value || hint,
+								[ r[0] + 6, r[1] + 2, r[2] - 6, 22 ],
+								r,
+								value ? white : grey,
+								{
+									vAlign: 0,
+									overflow: "clip"
+								}
+							)
+						);
+						if ( focus === id ) {
+							const prefix = text.run( value.slice( 0, selection[0] ) );
+							rect( [ r[0] + 6 + prefix.width, r[1] + 3, 1, 19 ], gold, "", [ 0, 0, 1, 1 ], r );
+						}
+					};
+					for ( const [index, tab] of GM_PANEL_TABS.entries() ) {
+						button(
+							"gm-panel-tab:" + index,
+							tab,
+							px + 14 + index * 129,
+							py + 40,
+							125,
+							false,
+							state.tab === tab
+						);
+					}
+					if ( kind ) {
+						const browse = state.browse[kind];
+						const categories = kind === "item" ? gmItemCategories() : gmMonsterCategories();
+						// Categories down the left; the selected one fills the list.
+						for ( const [index, category] of categories.entries() ) {
+							button(
+								"gm-panel-category:" + category.id,
+								category.label,
+								px + 14,
+								py + 76 + index * 27,
+								176,
+								false,
+								browse.category === category.id
+							);
+						}
+						const left = px + 202, right = px + width - 14;
+						gmField(
+							"gm-panel-query",
+							"Filter this category by name or codename",
+							left,
+							py + 76,
+							right - left
+						);
+						const catalog = game.gmCatalog?.kind === kind && game.gmCatalog.category === browse.category ?
+							game.gmCatalog :
+							undefined;
+						const rows = catalog?.rows ?? [];
+						const rowHeight = 22, listTop = py + 132;
+						const list: UiRect = [ left, listTop, right - left, rowHeight * GM_PANEL_VISIBLE_ROWS ];
+						label( "Name", left + 6, py + 108, gold );
+						label( "Level", left + 300, py + 108, gold );
+						label( "Codename", left + 352, py + 108, gold );
+						rect( list, [ .02, .03, .02, .8 ] );
+						controls.push( { id: "gm-panel-list", label: "Results", kind: "region", rect: list } );
+						const offset = Math.min( state.offset, Math.max( 0, rows.length - GM_PANEL_VISIBLE_ROWS ) );
+						for ( let i = 0; i < GM_PANEL_VISIBLE_ROWS && offset + i < rows.length; i++ ) {
+							const row = rows[offset + i]!, id = "gm-panel-row:" + row.codename;
+							const r: UiRect = [ list[0], listTop + i * rowHeight, list[2], rowHeight ];
+							const selected = browse.selected === row.codename;
+							if ( selected || hover === id ) {
+								rect( r, selected ? [ .3, .5, .8, .45 ] : [ 1, 1, 1, .08 ] );
+							}
+							controls.push( { id, label: row.name || row.codename, kind: "button", rect: r, selected } );
+							label( row.name || "-", r[0] + 6, r[1], white, [ r[0], r[1], 290, rowHeight ] );
+							label( row.level ? String( row.level ) : "", r[0] + 300, r[1], white, r );
+							label( row.codename, r[0] + 352, r[1], grey, r );
+						}
+						const pages = Math.max( 1, Math.ceil( (catalog?.total ?? 0) / GM_CATALOG_PAGE_ROWS ) ),
+							page = catalog?.page ?? 0;
+						const pagerTop = listTop + list[3] + 8;
+						button( "gm-panel-page:-1", "< Prev", left, pagerTop, 90, !catalog || page === 0 );
+						button( "gm-panel-page:1", "Next >", right - 90, pagerTop, 90, !catalog || page + 1 >= pages );
+						const status = !catalog ?
+							"Loading..." :
+							!catalog.total ?
+							"Nothing matches." :
+							`Page ${page + 1} of ${pages}, ${catalog.total} entries (scroll the list)`;
+						quads.push(
+							...text.quads( status, [ left + 96, pagerTop, right - left - 192, 24 ], full, grey, {
+								hAlign: 1,
+								vAlign: 1
+							} )
+						);
+						const row = rows.find( candidate => candidate.codename === browse.selected );
+						const actionTop = pagerTop + 36;
+						label(
+							row ? `Selected: ${row.name || row.codename}` : "Select a row.",
+							left,
+							actionTop - 2,
+							gold,
+							[
+								left,
+								actionTop - 4,
+								right - left,
+								24
+							]
+						);
+						if ( kind === "item" ) {
+							label(
+								row?.stackable ? `Amount (max ${row.maxStack})` : "Plus (0-12)",
+								left,
+								actionTop + 30
+							);
+							gmField( "gm-panel-amount", "0", left + 140, actionTop + 26, 70 );
+							button( "gm-panel-run:make", "Create item", right - 150, actionTop + 26, 150, !row );
+						} else {
+							label( "Count", left, actionTop + 30 );
+							gmField( "gm-panel-count", "1", left + 50, actionTop + 26, 50 );
+							for ( const [index, type] of GM_MONSTER_TYPES.entries() ) {
+								button(
+									"gm-panel-type:" + index,
+									type ? type[0] + type.slice( 1 ).toLowerCase() : "Own type",
+									left + 112 + index * 76,
+									actionTop + 26,
+									72,
+									false,
+									state.monsterType === type
+								);
+							}
+							button( "gm-panel-run:spawn", "Spawn", right - 130, actionTop + 26, 130, !row );
+						}
+					} else if ( state.tab === "Players" ) {
+						label( "Character name", px + 16, py + 82 );
+						gmField( "gm-panel-target", "Exact character name", px + 150, py + 78, width - 164 );
+						const actions = [
+							[ "find", "Find" ],
+							[ "goto", "Go to player" ],
+							[ "recall", "Recall to me" ],
+							[ "totown", "Send to town" ]
+						] as const;
+						for ( const [index, [action, caption]] of actions.entries() ) {
+							button( "gm-panel-run:" + action, caption, px + 14 + index * 129, py + 120, 125 );
+						}
+						label( "Silk amount", px + 16, py + 172 );
+						gmField( "gm-panel-silk", "1000", px + 150, py + 168, 120 );
+						button( "gm-panel-run:silk", "Give silk", px + 282, py + 168, 125 );
+						label( "Ban the named character (cannot be undone here).", px + 16, py + 222, grey );
+						button( "gm-panel-run:ban", "Ban", px + 528, py + 218, 125 );
+					} else {
+						const toggles = [
+							[ "invisible", "Invisible" ],
+							[ "invincible", "Invincible" ],
+							[ "gotown", "Go to town" ],
+							[ "worldstatus", "World status" ]
+						] as const;
+						for ( const [index, [action, caption]] of toggles.entries() ) {
+							button( "gm-panel-run:" + action, caption, px + 14 + index * 129, py + 80, 125 );
+						}
+						label( "Speed % (10-1000)", px + 16, py + 136 );
+						gmField( "gm-panel-speed", "200", px + 160, py + 132, 80 );
+						button( "gm-panel-run:speed", "Set speed", px + 252, py + 132, 125 );
+						button( "gm-panel-run:speed-reset", "Normal", px + 389, py + 132, 125 );
+						label( "Game hour (0-23)", px + 16, py + 180 );
+						gmField( "gm-panel-hour", "12", px + 160, py + 176, 80 );
+						button( "gm-panel-run:time", "Set time", px + 252, py + 176, 125 );
+						label( "Ctrl+G or /panel in the GM console opens this window.", px + 16, py + 230, grey );
+					}
+					const reply = game.gmReplies?.at( -1 );
+					const replyText = reply ? reply.text ?? hudCopy( reply.key ?? "" ) : "";
+					label( replyText ? "Server: " + replyText : "", px + 16, py + height - 34, gold, [
+						px + 14,
+						py + height - 40,
+						width - 28,
+						24
+					] );
+					endWindow( admission );
+				}
+				// Port-only, not native: the Battle Royale build picker (br-hud.ts),
+				// two race columns of the spec's builds. A pick goes to the server,
+				// whose next 0x3FB2 frame names the stored build.
+				if ( panel === BATTLE_ROYALE_PANEL && hudData ) {
+					const admission = beginWindow();
+					// A GM lobby member gets the bot settings row above the footer.
+					const switchBots = battleRoyaleCanSwitchBots( game?.battleRoyale, !!game?.eligibility?.gm );
+					const width = 648, height = 470 + (switchBots ? 40 : 0), column = 300, rowHeight = 52;
+					const [px, py] = windowOrigin( BATTLE_ROYALE_PANEL, [
+						Math.max( 0, (w - width) / 2 ),
+						Math.max( 0, (h - height) / 2 ),
+						width,
+						height
+					] );
+					const state = game?.battleRoyale,
+						pickable = battleRoyaleCanPick( state ),
+						grey = [ .7, .7, .7, 1 ] as const;
+					windowBox( "Battle Royale", px, py, width, height );
+					closeButton( px + width - 26, py + 10, panelCloseId( BATTLE_ROYALE_PANEL ) );
+					label( "Choose the build you drop with; it sets your race for the match.", px + 16, py + 40, grey );
+					const races = [ [ "CH", "Chinese" ], [ "EU", "European" ] ] as const;
+					for ( const [index, [race, title]] of races.entries() ) {
+						const left = px + 16 + index * (column + 16);
+						label( title, left, py + 70, gold );
+						for ( const [row, build] of battleRoyaleBuilds().filter( b => b.race === race ).entries() ) {
+							const top = py + 98 + row * rowHeight;
+							button(
+								BATTLE_ROYALE_BUILD_PREFIX + build.id,
+								build.name,
+								left,
+								top,
+								column,
+								!pickable,
+								state?.build === build.id
+							);
+							label( build.masteries + " - " + build.weapons, left + 4, top + 26, grey, [
+								left,
+								top + 24,
+								column,
+								22
+							] );
+						}
+					}
+					label(
+						"Current build: " + battleRoyaleBuildName( state?.build ?? 0 ),
+						px + 16,
+						py + height - 40,
+						gold
+					);
+					if ( switchBots ) {
+						button(
+							BATTLE_ROYALE_BOTS_WINDOW_ID,
+							battleRoyaleBotsLabel( game?.battleRoyaleBots ),
+							px + width - 16 - BATTLE_ROYALE_BUTTON_WIDTH,
+							py + height - 44,
+							BATTLE_ROYALE_BUTTON_WIDTH
+						);
+						drawBotSettings( BATTLE_ROYALE_BOTS_WINDOW_PREFIX, px + 16, py + height - 82 );
+					} else if ( game?.battleRoyaleBots?.enabled ) {
+						// Everyone else reads the settings the lobby plays with.
+						label(
+							battleRoyaleBotsText( game.battleRoyaleBots ),
+							px + width - 16 - BATTLE_ROYALE_BUTTON_WIDTH,
+							py + height - 40,
+							gold
+						);
+					}
+					endWindow( admission );
+				}
+				// Port-only, not native: the Battle Royale results (br-hud.ts), the
+				// final 0x3FB3 scoreboard by placement. The player's own row stands
+				// on the list's selected-row bar, in gold.
+				if ( panel === BATTLE_ROYALE_RESULTS_PANEL && hudData ) {
+					const admission = beginWindow();
+					const rows = battleRoyaleResultRows( game?.battleRoyaleScoreboard ).slice(
+						0,
+						BATTLE_ROYALE_RESULT_ROWS
+					);
+					const width = 360, rowHeight = 24, height = 112 + Math.max( 1, rows.length ) * rowHeight;
+					const [px, py] = windowOrigin( BATTLE_ROYALE_RESULTS_PANEL, [
+						Math.max( 0, (w - width) / 2 ),
+						Math.max( 0, (h - height) / 2 ),
+						width,
+						height
+					] );
+					const grey = [ .7, .7, .7, 1 ] as const,
+						bar = ROOT + "interface/guild/gil_bar02_select.png",
+						place = px + 24,
+						name = px + 84,
+						kills = px + width - 72;
+					paths.push( bar );
+					windowBox( "Battle Royale results", px, py, width, height );
+					closeButton( px + width - 26, py + 10, panelCloseId( BATTLE_ROYALE_RESULTS_PANEL ) );
+					label( "Place", place, py + 44, grey );
+					label( "Name", name, py + 44, grey );
+					label( "Kills", kills, py + 44, grey );
+					for ( const [index, row] of rows.entries() ) {
+						// A bot's row names it in red (Stage 5); the player's own stays gold.
+						const top = py + 72 + index * rowHeight,
+							color = row.self ? gold : white,
+							nameColor = !row.self && battleRoyaleIsBotName( game?.battleRoyaleBots, row.name ) ?
+								BATTLE_ROYALE_BOT_RGBA :
+								color;
+						if ( row.self && resources.has( bar ) ) {
+							rect( [ px + 14, top - 4, width - 28, rowHeight ], white, bar );
+						}
+						label( row.placement ? String( row.placement ) : "-", place, top, color );
+						label( row.name, name, top, nameColor, [ name, top, kills - name - 8, rowHeight ] );
+						label( String( row.kills ), kills, top, color );
+					}
+					if ( !rows.length ) label( "No results yet.", name, py + 72, grey );
 					endWindow( admission );
 				}
 				if ( panel === "Auto Potion" && hudData ) {
@@ -13305,16 +14492,53 @@ export function createUi(
 						authoredChrome( chrome, ox, oy );
 					}
 					const available = catalog.masteries.filter( m => masteries.some( a => a.id === m.id ) ),
-						tabs = [ ...new Set( available.map( m => m.tab ) ) ];
-					if ( !tabs.includes( skillTab ) ) skillTab = tabs[0] ?? 0;
+						tabs = [ ...new Set( available.map( m => m.tab ) ) ],
+						devilSkills = restoring ? [] : knownDevilSkills( game?.skills ?? [] ),
+						wornSpirit = restoring ?
+							undefined :
+							game?.avatarInventory?.find( item => isDevilSpirit( item.refObjId ) ),
+						devilTab = devilSkills.length > 0 || !restoring && devilSpiritWorn( game?.avatarInventory );
+					if ( !tabs.includes( skillTab ) && !(devilTab && skillTab === DEVIL_SKILL_TAB) ) {
+						skillTab = tabs[0] ?? (devilTab ? DEVIL_SKILL_TAB : 0);
+					}
 					for ( const [i, tab] of tabs.entries() ) {
 						nativeTab(
 							"skill-tab:" + tab,
 							hudCopy( available.find( m => m.tab === tab )!.tabName ),
-							[ ox + 4 + 62 * i, oy - 23, 60, 24 ],
+							[ ox + SKILL_TAB_INSET + SKILL_TAB_PITCH * i, oy - 23, 60, 24 ],
 							tab === skillTab,
 							{ family: "com_tab" }
 						);
+					}
+					if ( devilTab ) {
+						// Port-only: the Devil's Spirit tab, at the strip's right end
+						// (never before the last mastery tab), led by the spirit's icon.
+						const r: UiRect = [
+								Math.max(
+									ox + SKILL_TAB_INSET + SKILL_TAB_PITCH * tabs.length,
+									ox + SKILL_FRAME_WIDTH - SKILL_TAB_INSET - DEVIL_SKILL_TAB_WIDTH
+								),
+								oy - 23,
+								DEVIL_SKILL_TAB_WIDTH,
+								24
+							],
+							icon = iconPath( wornSpirit?.icon );
+						nativeTab(
+							"skill-tab:" + DEVIL_SKILL_TAB,
+							DEVIL_SKILL_TAB_TEXT,
+							r,
+							skillTab === DEVIL_SKILL_TAB,
+							{
+								family: "com_tab",
+								client: icon ? [ DEVIL_SKILL_TAB_ICON + 6, 0, 2, 0 ] : [ 0, 0, 0, 0 ]
+							}
+						);
+						if ( icon ) {
+							paths.push( icon );
+							if ( resources.has( icon ) ) {
+								rect( [ r[0] + 5, r[1] + 4, DEVIL_SKILL_TAB_ICON, DEVIL_SKILL_TAB_ICON ], white, icon );
+							}
+						}
 					}
 					const active = available.filter( m => m.tab === skillTab );
 					if ( !active.some( m => m.id === selectedMastery ) ) selectedMastery = active[0]?.id ?? 0;
@@ -13350,6 +14574,21 @@ export function createUi(
 						mastery = available.find( m => m.id === selectedMastery ),
 						level = masteries.find( m => m.id === selectedMastery )?.level ?? 0;
 					authoredImage( board.GDR_SKILLBOARD_MASTERYBOARD!, bx, by );
+					if ( skillTab === DEVIL_SKILL_TAB ) {
+						authoredText(
+							board.GDR_SKILLBOARD_MASTERYNAME!,
+							bx,
+							by,
+							wornSpirit?.name ? wornSpirit.name : DEVIL_SKILL_TAB_TEXT
+						);
+						const icon = iconPath( wornSpirit?.icon );
+						if ( icon ) {
+							paths.push( icon );
+							if ( resources.has( icon ) ) {
+								rect( authoredRect( board.GDR_SKILLBOARD_ICON!, bx, by ), white, icon );
+							}
+						}
+					}
 					if ( mastery ) {
 						authoredText(
 							board.GDR_SKILLBOARD_MASTERYNAME!,
@@ -13404,7 +14643,89 @@ export function createUi(
 						groups = catalog.groups.filter( g => g.mastery === selectedMastery ).sort( ( a, b ) =>
 							a.row - b.row
 						);
-					skillScroll = Math.min( skillScroll, Math.max( 0, groups.length - 4 ) );
+					const rowCount = skillTab === DEVIL_SKILL_TAB ? Math.max( 1, devilSkills.length ) : groups.length;
+					skillScroll = Math.min( skillScroll, Math.max( 0, rowCount - SKILL_ROWS_VISIBLE ) );
+					if ( skillTab === DEVIL_SKILL_TAB ) {
+						// Port-only: one row per known devil skill, its icon a skill
+						// control like the board's (drag to a shortcut, right-click to
+						// cast); the passives, like every passive, do not drag.
+						for (
+							const [i, id] of devilSkills.slice(
+								Math.floor( skillScroll ),
+								Math.floor( skillScroll ) + SKILL_ROWS_VISIBLE
+							).entries()
+						) {
+							const gx = bounds[0],
+								gy = bounds[1] + i * SKILL_ROW_PITCH,
+								skin = ROOT + "interface/skill/skl_mastery_bar.png",
+								ref = learned.skill( id ),
+								row = hudData.tooltipSkills.get( id ),
+								name = localization.text( ref?.nameSymbol ?? row?.nameSymbol ?? "", ref?.name ?? "" ),
+								icon = iconPath( ref?.icon ),
+								r: UiRect = [ gx + 7, gy + 3, 32, 32 ],
+								active = (row?.basicActivity ?? 0) !== 0;
+							paths.push( skin );
+							if ( resources.has( skin ) ) rect( [ gx, gy, 328, 60 ], white, skin );
+							if ( icon ) {
+								paths.push( icon );
+								if ( resources.has( icon ) ) rect( r, white, icon );
+							}
+							const info = devilSkillInfo( id ),
+								description = localization.text( row?.tooltipDescriptionSymbol ?? "", "" ) ||
+									(info?.description ?? ""),
+								lines: [string, readonly [number, number, number, number]][] = [
+									[ name, white ],
+									[ info?.stageText ?? "", DEVIL_STAGE_COLOR ],
+									[ description, white ],
+									[ info?.timingText ?? "", DEVIL_DETAIL_COLOR ]
+								];
+							for ( const [n, [line, color]] of lines.entries() ) {
+								quads.push(
+									...text.quads(
+										line,
+										[ gx + 46, gy + 2 + n * DEVIL_ROW_LINE, 270, DEVIL_ROW_LINE ],
+										full,
+										color,
+										{
+											hAlign: 0,
+											vAlign: 1
+										}
+									)
+								);
+							}
+							controls.push( {
+								id: "skill:" + id,
+								label: name,
+								rect: r,
+								kind: "button",
+								rightActivate: active,
+								draggable: active,
+								selected: id === selectedSkill
+							} );
+						}
+						if ( !devilSkills.length ) {
+							// A worn spirit whose skills have not arrived (not awakened yet).
+							quads.push(
+								...text.quads(
+									DEVIL_SKILL_HINT_TEXT,
+									[ bounds[0] + 8, bounds[1] + 8, 310, 14 ],
+									full,
+									white,
+									{
+										hAlign: 0,
+										vAlign: 1
+									}
+								),
+								...text.quads(
+									DEVIL_SKILL_HINT_DETAIL,
+									[ bounds[0] + 8, bounds[1] + 26, 310, 14 ],
+									full,
+									DEVIL_DETAIL_COLOR,
+									{ hAlign: 0, vAlign: 1 }
+								)
+							);
+						}
+					}
 					for (
 						const [i, group] of groups.slice( Math.floor( skillScroll ), Math.floor( skillScroll ) + 4 )
 							.entries()
@@ -13524,9 +14845,9 @@ export function createUi(
 					const scroll = chatScrollbar(
 						"skill-scroll",
 						[ bounds[0] + 326, bounds[1] + 19, 16, 177 ],
-						groups.length,
-						4,
-						Math.max( 0, groups.length - 4 ) - skillScroll,
+						rowCount,
+						SKILL_ROWS_VISIBLE,
+						Math.max( 0, rowCount - SKILL_ROWS_VISIBLE ) - skillScroll,
 						resources.size,
 						full,
 						hover,
@@ -18858,7 +20179,11 @@ export function createUi(
 					}
 				}
 
-				for ( const entity of next.entities ) {
+				const bots = game?.battleRoyaleBots;
+				for ( const listed of next.entities ) {
+					// Port-only: a Battle Royale bot (a monster) wears its roster name.
+					const entity = battleRoyaleBotEntity( listed, bots ),
+						bot = battleRoyaleBotName( bots, listed.gid ) !== undefined;
 					if ( entity.groundItem ) {
 						if (
 							!groundItemNameVisible(
@@ -19009,7 +20334,10 @@ export function createUi(
 					}
 					// CICUser 858810 gives the actual [GM] name prefix priority over player
 					// relation colors. This is presentation, never a privilege check.
-					const nameColor: UiQuad["color"] = nameColorRgba( entity.nameColor ?? 0xffffffff );
+					// Port-only: a Battle Royale bot's name is red (Stage 5).
+					const nameColor: UiQuad["color"] = bot ?
+						[ ...BATTLE_ROYALE_BOT_RGBA ] :
+						nameColorRgba( entity.nameColor ?? 0xffffffff );
 					quads.push(
 						...text.quads( name, [ left, top, width, height ], full, nameColor, {
 							vAlign: 0,
@@ -23716,10 +25044,7 @@ export function createUi(
 						if ( binding?.kind === 0x49 ) skill = binding.payload;
 					}
 					if ( item || skill ) {
-						const country = game.guide?.country,
-							gender = next.session?.characters?.find( row => row.name === next.session?.character )
-								?.gender,
-							sex = gender === 0 ? 1 : gender === 1 ? 0 : undefined;
+						const country = game.guide?.country, sex = localSex;
 						if (
 							tooltipMemo && tooltipMemo.item === item && tooltipMemo.skill === skill &&
 							tooltipMemo.progression === game.progression && tooltipMemo.learned === game.skills &&

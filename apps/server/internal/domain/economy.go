@@ -92,6 +92,12 @@ var economyDoorReasons = map[string]economyDoorReason{
 	"guild-war-compensation":    {gain: "guild_war_compensation"},
 	"mercenary-attribute":       {loss: "guild_fee"},
 	"operator-grant-items":      {gain: "gm_grant", loss: "gm_grant"},
+	// A battle royale swap: the match character starts with no gold and
+	// the restore brings the real gold back; neither is income or spending,
+	// so both carry their own tagged reasons for the economy view to leave
+	// out (port-only, action/battleroyale.go).
+	"battle-royale-hold":    {loss: "battle_royale_hold"},
+	"battle-royale-restore": {gain: "battle_royale_restore", loss: "battle_royale_restore"},
 }
 
 /*
@@ -174,6 +180,10 @@ var economyReasonKinds = map[string]string{
 	"storage_deposit":        EconomyKindTransfer,
 	"guild_storage":          EconomyKindTransfer,
 	"most_wanted_transfer":   EconomyKindTransfer,
+	// The battle royale swap moves the real gold into the held record and
+	// back: a transfer with the same holder, tagged so the view skips it.
+	"battle_royale_hold":    EconomyKindTransfer,
+	"battle_royale_restore": EconomyKindTransfer,
 }
 
 /*

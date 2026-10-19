@@ -300,10 +300,20 @@ func (rt *Runtime) grantPickupTo(g pickupGrant) (result OpResult) {
 		MagicOptions:      grantedItem.MagicOptions,
 		TransformRefObjID: grantedItem.TransformRefObjID, Summon: domain.CloneCOS(grantedItem.Summon),
 	}
-	return OpResult{
+	result = OpResult{
 		Frames:    wire.PickupItemGrantFrames(anim, grant.DestSlot, body, groundItem.Gid, grant.GroundRemainder, questFrames),
 		Broadcast: wire.PickupBroadcastFrames(anim, groundItem.Gid, grant.GroundRemainder),
 	}
+	// Port-only, nil = native: a battle royale bot counts its pickups
+	// (battleroyale_botwatch.go).
+	rt.noteBattleRoyaleBotPickup(character)
+	// Port-only (battleroyale_arena.go): a match character seats a better
+	// build weapon it just picked up, behind the scoop in the same burst.
+	if equip, equipped := rt.battleRoyaleAutoEquip(divisionID, character); equipped {
+		result.Frames = append(result.Frames, equip.Frames...)
+		result.Broadcast = append(result.Broadcast, equip.Broadcast...)
+	}
+	return result
 }
 
 /*

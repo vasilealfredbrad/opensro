@@ -187,10 +187,17 @@ test("past the actor room the nearest effects draw, and the probe hears how many
 	const effectActors = [ effect( -1, 900 ), effect( -2, 1 ), effect( -3, 500 ), effect( -4, 2 ) ];
 	const counts = {};
 	auxiliary.presentStages(
-		{ orbActors: [], effectActors, next, seconds: 0, animationHolders: [], player: { regionId: 257, x: 0, z: 0 } },
+		{
+			orbActors: [],
+			effectActors,
+			next,
+			seconds: 0,
+			animationHolders: [],
+			gameplay: { pose: { regionId: 257, x: 0, y: 0, z: 0, angle: 0 } }
+		},
 		{
 			renderer: { setCharacterAssembly() {} },
-			resources: { duration: () => 1 },
+			resources: { duration: () => 1, ready: () => false, failed: () => false },
 			effects: { animationModel: () => undefined, takeBudget: () => ({ actors: 4, gaveWay: 0 }) },
 			probe: { characterCount: ( name, value = 1 ) => counts[name] = (counts[name] ?? 0) + value }
 		}

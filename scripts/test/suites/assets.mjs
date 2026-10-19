@@ -23,6 +23,8 @@ export default {
 		"scripts/test/assets/skyImagePublication.test.mjs",
 		"scripts/test/assets/nativeCharacterTextures.test.mjs",
 		"scripts/test/assets/moonlitThiefSuit.test.mjs",
+		"scripts/test/assets/devilSpirit.test.mjs",
+		"scripts/test/assets/devilSpiritPresentation.test.mjs",
 		"scripts/test/assets/fontAtlasPublication.test.mjs",
 		"scripts/test/assets/buildSharedUtilities.test.mjs",
 		"scripts/test/assets/animation-sound-bindings.test.mjs",

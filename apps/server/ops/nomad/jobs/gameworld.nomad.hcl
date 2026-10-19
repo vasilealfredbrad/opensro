@@ -330,6 +330,14 @@ variable "moonlit_thief_suit" {
   default = "on"
 }
 
+# devil_spirit adds the Devil's Spirit rows of a later client as v1.150
+# avatar attachments (port-only, not native; owner decision 2026-10-18).
+# "off" is native.
+variable "devil_spirit" {
+  type    = string
+  default = "on"
+}
+
 # den_no_transport_summon refuses a transport summon during the Bandit Den
 # Return Scroll's countdown (port-only, not native; owner decision
 # 2026-10-14). "off" restores the native rule, which allows it.
@@ -597,6 +605,43 @@ variable "job_goods_teleport" {
   default = "on"
 }
 
+# chain_lightning_targets is how many targets the European wizard's Chain
+# Lightning chains to, every rank (port-only, not native; owner decision
+# 2026-10-18): a count 1..255, or "off" for the skill's own 3. A malformed
+# value stops GameWorld at boot.
+variable "chain_lightning_targets" {
+  type    = string
+  default = "50"
+}
+
+# chain_lightning_range_meters is Chain Lightning's chain radius around its
+# first target, in metres (port-only, not native; owner decision
+# 2026-10-18): a number 1..100000, or "off" for the skill's own 10 m. A
+# malformed value stops GameWorld at boot.
+variable "chain_lightning_range_meters" {
+  type    = string
+  default = "10000"
+}
+
+# chain_lightning_full_damage gives every Chain Lightning victim the first
+# target's full damage instead of 25% less per victim (port-only, not
+# native; owner decision 2026-10-18). "off" is native. A malformed value
+# stops GameWorld at boot.
+variable "chain_lightning_full_damage" {
+  type    = string
+  default = "on"
+}
+
+# chain_lightning_hop_ms is the period, in milliseconds, at which the
+# client's Chain Lightning bolt leaves each victim for the next; each next
+# victim's corpse stays that much longer so the bolt still finds it
+# (port-only, not native; owner decision 2026-10-18): a number 1..2000, or
+# "off" for the native flight. A malformed value stops GameWorld at boot.
+variable "chain_lightning_hop_ms" {
+  type    = string
+  default = "500"
+}
+
 # beta_shop_only_degree9 keeps degree-9 Lucky Powder, magic stones and
 # attribute stones out of every monster drop (port-only, not native, beta
 # balance; owner 2026-10-13): players buy them from the Jangan shops. "off"
@@ -678,6 +723,15 @@ variable "sun_event_only" {
 variable "stack_sizes" {
   type    = string
   default = "arrow=2500,bolt=2500,luckypowder=500"
+}
+
+# battle_royale runs the battle royale mode: a lobby circle in Wind Town,
+# Roc Mountain, and last-player-standing matches in a layer of world 29
+# (port-only, not native; owner decision 2026-10-18, docs/battle-royale.md).
+# "off" is native: no lobby, no match, no frames.
+variable "battle_royale" {
+  type    = string
+  default = "on"
 }
 
 # The community site's public read API listener (internal/agent/publicstats):
@@ -844,6 +898,7 @@ job "sro-gameworld-__SHARD_ID__" {
         SRO_TRADE_ROUTE_CONSTANTINOPLE_PERCENT  = var.trade_route_constantinople_percent
         SRO_JOB_SUIT_HIDES_ARMOR                = var.job_suit_hides_armor
         SRO_MOONLIT_THIEF_SUIT                  = var.moonlit_thief_suit
+        SRO_DEVIL_SPIRIT                        = var.devil_spirit
         SRO_DEN_NO_TRANSPORT_SUMMON             = var.den_no_transport_summon
         SRO_TRADER_CARGO_DROP                   = var.trader_cargo_drop
         SRO_MALL_TRANSPORT_SPEED                = var.mall_transport_speed
@@ -890,10 +945,15 @@ job "sro-gameworld-__SHARD_ID__" {
         SRO_JOB_MONSTER_SPEED                   = var.job_monster_speed
         SRO_TRANSPORT_FOLLOW                    = var.transport_follow
         SRO_JOB_GOODS_TELEPORT                  = var.job_goods_teleport
+        SRO_CHAIN_LIGHTNING_TARGETS             = var.chain_lightning_targets
+        SRO_CHAIN_LIGHTNING_RANGE_METERS        = var.chain_lightning_range_meters
+        SRO_CHAIN_LIGHTNING_FULL_DAMAGE         = var.chain_lightning_full_damage
+        SRO_CHAIN_LIGHTNING_HOP_MS              = var.chain_lightning_hop_ms
         SRO_ELIXIR_DROPS_OFF                    = var.elixir_drops_off
         SRO_ALCHEMY_MATERIAL_DROPS_OFF          = var.alchemy_material_drops_off
         SRO_BETA_SHOP_ONLY_DEGREE9              = var.beta_shop_only_degree9
         SRO_STACK_SIZES                         = var.stack_sizes
+        SRO_BATTLE_ROYALE                       = var.battle_royale
         SRO_PUBLIC_API_ADDR                     = var.public_api_addr
         SRO_PUBLIC_API_TOKEN_PATH               = "${NOMAD_SECRETS_DIR}/public-api-token"
         TRANSPORT_WT_ADDR                       = "${NOMAD_IP_transport}:${NOMAD_PORT_transport}"

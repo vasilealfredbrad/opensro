@@ -16,6 +16,7 @@ import { tooltipDescription } from "./tooltip-description";
 import { itemTooltipStats } from "./item-tooltip-stats";
 import { itemTooltipRecovery } from "./item-tooltip-recovery";
 import { tooltipFormat, type TooltipRow } from "./tooltip-rows";
+import { devilSpiritTooltipRows, isDevilSpirit } from "../gameplay/devil-spirit";
 // 56CDA0/56CB80 family dispatch, 564230 name, 558CB0 degree and
 // 568500 requirements. This takes an item instance, never just a ref id.
 /*
@@ -207,6 +208,12 @@ export function itemTooltip(
 	if ( magic.length ) {
 		space();
 		rows.push( ...magic );
+	}
+	// Port-only: a Devil's Spirit's awakening and enhancement (devil-spirit.ts),
+	// read against the wall clock.
+	if ( isDevilSpirit( item.refObjId ) ) {
+		space();
+		rows.push( ...devilSpiritTooltipRows( item, Math.floor( Date.now() / 1000 ) ) );
 	}
 	// 55A7B0: the published inventory/shop/COS item slots show stack capacity
 	// and the actual instance quantity. Timed COS extension uses quantity as

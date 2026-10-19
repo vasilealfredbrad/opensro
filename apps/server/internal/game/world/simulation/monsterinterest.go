@@ -103,6 +103,10 @@ func (ops *MonsterMoverOps) runScopeVisibility(nowMs int64, sessions []SessionSn
 
 	inScopeGids := make(map[uint32]bool)
 	for _, session := range sessions {
+		if session.Headless {
+			// A headless character (port-only) sees no monster.
+			continue
+		}
 		inScope, snapshots := ops.Monsters.populationInterestDelta(session.DivisionID, session.Population, viewers[session.SessionID], nowMs, ops.shownMonsters[session.SessionID])
 		// Detection only: never truncate the server-owned existence set.
 		if len(inScope) > monsterScopeSoftLimit {

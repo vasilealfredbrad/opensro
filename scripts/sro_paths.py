@@ -92,6 +92,28 @@ def _resolve_game_root() -> Path:
 
 GAME_ROOT = _resolve_game_root()
 EXTRACTED_ROOT = GAME_ROOT / "extracted"
+
+
+# ================
+# _resolve_import_root
+#
+# Port-only, not native: SRO_IMPORT_ROOT names an extraction of a LATER
+# client (Data_extracted, Media_extracted, ...) whose files the build may
+# use where the v1.150 client has none (the Devil's Spirit,
+# scripts/build/char/devilSpirit.mjs). Absolute only; unset means none.
+# scripts/build/world/paths.mjs owns the same rule.
+# ================
+def _resolve_import_root() -> Path | None:
+	configured = os.environ.get("SRO_IMPORT_ROOT", "").strip()
+	if not configured:
+		return None
+	path = Path(configured)
+	if not path.is_absolute():
+		raise RuntimeError(f"SRO_IMPORT_ROOT must be an absolute path, not {configured!r}")
+	return path.resolve()
+
+
+IMPORT_ROOT = _resolve_import_root()
 def _resolve_generated_root() -> Path:
 	"""SRO_GENERATED_ROOT when set (absolute only), else the main checkout's."""
 	override = os.environ.get("SRO_GENERATED_ROOT")

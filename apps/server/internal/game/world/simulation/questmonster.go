@@ -45,6 +45,15 @@ type QuestMonsterSpawn struct {
 	RadiusMin     float64
 	RadiusSpan    float64
 	LifetimeMs    int64
+	// Rarity, when not 0, is the spawn grade the actor gets instead of its
+	// reference's own (GMSpawnRarity's values: 1 champion, 4 giant), the
+	// way a GM spawn carries one. Port-only callers (the battle royale
+	// supply drop) use it; the native quest spawns leave it 0.
+	Rarity uint8
+	// PortCombat, when set, is the actor's port-only combat projection
+	// (monster.PortCombat, the battle royale bots); native spawns leave
+	// it nil.
+	PortCombat *monster.PortCombat
 }
 
 /*
@@ -60,18 +69,31 @@ MOB_QT_02_PUNISHER_CLON leaves after its 300 s.
 ================
 */
 func (s *MonsterState) SpawnQuestMonster(request QuestMonsterSpawn) bool {
+	_, ok := s.SpawnQuestMonsterActor(request)
+	return ok
+}
+
+/*
+================
+SpawnQuestMonsterActor
+
+SpawnQuestMonster returning the actor it created, for a caller that keeps
+the new gid (the battle royale bots).
+================
+*/
+func (s *MonsterState) SpawnQuestMonsterActor(request QuestMonsterSpawn) (monster.Instance, bool) {
 	if IsDungeonRegion(request.Position.RegionID) {
-		return false
+		return monster.Instance{}, false
 	}
 	ref, exists := s.ReferenceByCodename(request.Codename)
 	if !exists || ref.MaxHP == 0 {
-		return false
+		return monster.Instance{}, false
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	state := s.populationForLease(request.Division, request.Population)
 	if state == nil || s.counter >= domain.MaxMonsterGIDCounter {
-		return false
+		return monster.Instance{}, false
 	}
 	angleFraction := float32(float64(s.randomWord()) / nativeRandomMaximum)
 	angle := float64(float32(float64(angleFraction) * nativeCircleRadians))
@@ -84,12 +106,16 @@ func (s *MonsterState) SpawnQuestMonster(request QuestMonsterSpawn) bool {
 	})
 	spawn, valid := s.resolveSpawnGround(spawn, center.Y)
 	if !valid {
-		return false
+		return monster.Instance{}, false
 	}
 	s.counter++
 	actor := monster.Instance{
 		Gid: monster.GidBase + s.counter, Ref: ref, Spawn: spawn, NestDetached: true,
 		SpawnHeading: uint16(angle), Nest: monster.NestRow{SpawnPoint: spawn, PolicyPinned: true},
+		PortCombat: request.PortCombat,
+	}
+	if request.Rarity != 0 {
+		actor.Nest.HasRarityOverride, actor.Nest.RarityOverride = true, GMSpawnRarity(request.Rarity, ref.MonsterType)
 	}
 	actor.CurrentHP = actor.EffectiveMaxHP()
 	if tactics, found := monster.ResolveSummonTactics(ref, 0, s.random); found {
@@ -113,7 +139,7 @@ func (s *MonsterState) SpawnQuestMonster(request QuestMonsterSpawn) bool {
 	state.byRegion[spawn.RegionID] = append(state.byRegion[spawn.RegionID], actor.Gid)
 	armLifetimeLocked(state, actor, request.NowMs)
 	armQuestLifetimeLocked(state, actor.Gid, request.NowMs+request.LifetimeMs, request.LifetimeMs > 0)
-	return true
+	return actor, true
 }
 
 /*

@@ -29,7 +29,7 @@ from PIL import Image
 
 from build_parallelism import build_jobs
 from rebuild_lock import generated_assets_lock
-from sro_paths import EXTRACTED_ROOT, GAME_ROOT, GENERATED_ROOT
+from sro_paths import EXTRACTED_ROOT, GAME_ROOT, GENERATED_ROOT, IMPORT_ROOT
 
 
 SOURCE_ROOTS = [
@@ -175,20 +175,28 @@ def discover_assets(filters: list[str] | None = None) -> list[ImageAsset]:
     scan_roots = pruned_scan_roots(filters) if filters else None
     if scan_roots is None:
         scan_roots = [EXTRACTED_ROOT / root_name for root_name in SOURCE_ROOTS]
+    scan_bases = [(root, EXTRACTED_ROOT) for root in scan_roots]
+    # Port-only, not native: a later client's import (SRO_IMPORT_ROOT) adds
+    # the images v1.150 lacks under the same relative paths; a v1.150 file
+    # of the same path always wins.
+    if IMPORT_ROOT is not None:
+        scan_bases += [(IMPORT_ROOT / root_name, IMPORT_ROOT) for root_name in SOURCE_ROOTS]
 
     # os.walk lists files from the directory read itself; rglob plus is_file()
     # stat'ed all ~57k extracted entries (3.4 s against 0.3 s, measured
     # 2026-10-08). The extension is checked on the name before any Path or
     # header read.
-    for root in scan_roots:
+    for root, base in scan_bases:
         if not root.exists():
             continue
         for directory, _, names in os.walk(root):
-            relative_directory = Path(os.path.relpath(directory, EXTRACTED_ROOT))
+            relative_directory = Path(os.path.relpath(directory, base))
             for name in names:
                 if os.path.splitext(name)[1].lower() not in SUPPORTED_EXTENSIONS:
                     continue
                 path = Path(directory, name)
+                if base != EXTRACTED_ROOT and (EXTRACTED_ROOT / relative_directory / name).exists():
+                    continue
                 if is_image_asset(path):
                     candidates.append(path)
                     relatives[path] = relative_directory / name

@@ -28,6 +28,10 @@ export function uiPanels() {
 		"Actions",
 		"Alchemy",
 		"Auto Potion",
+		// Port-only, not native: the Battle Royale build picker (br-hud.ts).
+		"Battle Royale",
+		// Port-only, not native: the Battle Royale end-of-match scoreboard (br-hud.ts).
+		"Battle Royale results",
 		"Blocking",
 		"COS inventory",
 		"Character",
@@ -38,6 +42,8 @@ export function uiPanels() {
 		"Fortress tax",
 		"Fortress production",
 		"Game Guide",
+		// Port-only, not native: the GM command window (gm-panel-hud.ts).
+		"GM Panel",
 		"Guild",
 		"Guild tools",
 		"Inventory",

@@ -238,6 +238,67 @@ function parseSkillLights( lines ) {
 
 /*
 ================
+skillAniSetRecord
+
+One animation-set row (Service already consumed) as the record
+SkillAnimationSet_ParseRow builds; null for a row without a name.
+================
+*/
+export function skillAniSetRecord( c, lights ) {
+	const baseName = c[1];
+	// Native sub_9169d0 resolves the authored name; it is not restricted to
+	// the player SKILL_ namespace. MSKILL_ and PSKILL_ rows share this table.
+	if ( !baseName ) return null;
+	// Native 0x91def3..0x91df0a resolves each comma token through the
+	// data_ccd620-backed map at 0xf090c8 and increments the phase count only
+	// on a hit. Keep malformed/version-mismatched names out of both the table
+	// and its cardinality exactly (the shipped DOWN_UP rows intentionally miss;
+	// only ANI_DOWN_UP exists in the larger script-object registry).
+	const ready = animationNames( c[ANI_COL.ready] );
+	const wait = animationNames( c[ANI_COL.wait] );
+	const shot = animationNames( c[ANI_COL.shot] );
+	const actionReady = optionalResourcePath( c[ANI_COL.actionReady] );
+	const actionWait = optionalResourcePath( c[ANI_COL.actionWait] );
+	const actionShot = optionalResourcePath( c[ANI_COL.actionShot] );
+	return {
+		baseName,
+		priority: Number( c[ANI_COL.priority] ) || 0,
+		// 91DAE0 boolean lookup: unknown names resolve -1, hence true.
+		overlap: ![ "FALSE", "false" ].includes( c[ANI_COL.overlap] ),
+		aniGroup: c[ANI_COL.group] ?? "DEFAULT",
+		// The three per-phase anim tables the record carries; counts drive
+		// the 8e06e0 haveAnim gate that enters motion state 2.
+		readyAnims: ready,
+		waitAnims: wait,
+		shotAnims: shot,
+		actionReady,
+		actionWait,
+		actionShot,
+		actionReadyAnims: animationNames( c[ANI_COL.actionReady] ),
+		actionWaitAnims: animationNames( c[ANI_COL.actionWait] ),
+		actionShotAnims: animationNames( c[ANI_COL.actionShot] ),
+		objectResource: skillObjectResource( c[ANI_COL.objectResource] ),
+		defenseEffectPath: optionalResourcePath( c[12] ),
+		hitLight: lights.get( c[21] ) ?? null,
+		// Native CIDecoSkillRecord's authored resource names. These are
+		// semantic additions to the browser record, not replacements for the
+		// +0x00..+0x80 folded layout above: the packet host uses them at the
+		// external EasyFX render boundary after the exact B245/B505 lifecycle.
+		damageEffectPath: optionalResourcePath( c[ANI_COL.damageEffect] ),
+		criticalDamageEffectPath: optionalResourcePath( c[ANI_COL.criticalDamageEffect] ),
+		arrowTrailEffectPath: optionalResourcePath( c[ANI_COL.arrowTrailEffect] ),
+		arrowForceEffectPath: optionalResourcePath( c[ANI_COL.arrowForceEffect] ),
+		hideWeapon: Number( c[ANI_COL.hideWeapon] ) || 0,
+		spineAimAxis: spineAimAxis( baseName, c[ANI_COL.spineAimAxis] ),
+		// sub_91dae0 @0x91e6f4 stores the final authored byte at record+0xbe.
+		// Single-projectile 8ddde0 snapshots that record into stage+0x1b4;
+		// 8d7fd0 uses +0xbe to gate the target's secondary action effect.
+		attackSkillFlagBe: Number( c[ANI_COL.attackSkillFlagBe] ) || 0
+	};
+}
+
+/*
+================
 parseSkillAniSet
 
  * Parse both native animation-set section versions -> Map<baseName, aniRow>.
@@ -265,59 +326,37 @@ export function parseSkillAniSet( skillEffectPath ) {
 		if ( serviceColumnCount && Number( authored[0] ?? 0 ) === 0 ) {
 			continue;
 		}
-		const c = authored.slice( serviceColumnCount );
-		const baseName = c[1];
-		// Native sub_9169d0 resolves the authored name; it is not restricted to
-		// the player SKILL_ namespace. MSKILL_ and PSKILL_ rows share this table.
-		if ( !baseName ) continue;
-		// Native 0x91def3..0x91df0a resolves each comma token through the
-		// data_ccd620-backed map at 0xf090c8 and increments the phase count only
-		// on a hit. Keep malformed/version-mismatched names out of both the table
-		// and its cardinality exactly (the shipped DOWN_UP rows intentionally miss;
-		// only ANI_DOWN_UP exists in the larger script-object registry).
-		const ready = animationNames( c[ANI_COL.ready] );
-		const wait = animationNames( c[ANI_COL.wait] );
-		const shot = animationNames( c[ANI_COL.shot] );
-		const actionReady = optionalResourcePath( c[ANI_COL.actionReady] );
-		const actionWait = optionalResourcePath( c[ANI_COL.actionWait] );
-		const actionShot = optionalResourcePath( c[ANI_COL.actionShot] );
-		out.set( baseName, {
-			baseName,
-			priority: Number( c[ANI_COL.priority] ) || 0,
-			// 91DAE0 boolean lookup: unknown names resolve -1, hence true.
-			overlap: ![ "FALSE", "false" ].includes( c[ANI_COL.overlap] ),
-			aniGroup: c[ANI_COL.group] ?? "DEFAULT",
-			// The three per-phase anim tables the record carries; counts drive
-			// the 8e06e0 haveAnim gate that enters motion state 2.
-			readyAnims: ready,
-			waitAnims: wait,
-			shotAnims: shot,
-			actionReady,
-			actionWait,
-			actionShot,
-			actionReadyAnims: animationNames( c[ANI_COL.actionReady] ),
-			actionWaitAnims: animationNames( c[ANI_COL.actionWait] ),
-			actionShotAnims: animationNames( c[ANI_COL.actionShot] ),
-			objectResource: skillObjectResource( c[ANI_COL.objectResource] ),
-			defenseEffectPath: optionalResourcePath( c[12] ),
-			hitLight: lights.get( c[21] ) ?? null,
-			// Native CIDecoSkillRecord's authored resource names. These are
-			// semantic additions to the browser record, not replacements for the
-			// +0x00..+0x80 folded layout above: the packet host uses them at the
-			// external EasyFX render boundary after the exact B245/B505 lifecycle.
-			damageEffectPath: optionalResourcePath( c[ANI_COL.damageEffect] ),
-			criticalDamageEffectPath: optionalResourcePath( c[ANI_COL.criticalDamageEffect] ),
-			arrowTrailEffectPath: optionalResourcePath( c[ANI_COL.arrowTrailEffect] ),
-			arrowForceEffectPath: optionalResourcePath( c[ANI_COL.arrowForceEffect] ),
-			hideWeapon: Number( c[ANI_COL.hideWeapon] ) || 0,
-			spineAimAxis: spineAimAxis( baseName, c[ANI_COL.spineAimAxis] ),
-			// sub_91dae0 @0x91e6f4 stores the final authored byte at record+0xbe.
-			// Single-projectile 8ddde0 snapshots that record into stage+0x1b4;
-			// 8d7fd0 uses +0xbe to gate the target's secondary action effect.
-			attackSkillFlagBe: Number( c[ANI_COL.attackSkillFlagBe] ) || 0
-		} );
+		const record = skillAniSetRecord( authored.slice( serviceColumnCount ), lights );
+		if ( record ) out.set( record.baseName, record );
 	}
 	return out;
+}
+
+/*
+================
+soundPublicPath
+
+Only publish sound handles backed by an extracted native resource.
+================
+*/
+function soundPublicPath( primitiveSoundRoot, soundPath ) {
+	if ( !soundPath ) return null;
+	const normalized = soundPath.replaceAll( "\\", "/" ).toLowerCase();
+	return fs.existsSync( path.join( primitiveSoundRoot, ...normalized.split( "/" ) ) ) ?
+		`/assets/audio/sfx/prim/snd/${normalized}` :
+		null;
+}
+
+/*
+================
+resolveStageSounds
+
+A stage's begin and end sounds as public paths under primitiveSoundRoot.
+================
+*/
+function resolveStageSounds( record, primitiveSoundRoot ) {
+	record.soundBeginPublicPath = soundPublicPath( primitiveSoundRoot, record.soundBegin );
+	record.soundEndPublicPath = soundPublicPath( primitiveSoundRoot, record.soundEnd );
 }
 
 /*
@@ -345,24 +384,7 @@ export function parseSkillEffectSet( skillEffectPath, primitiveSoundRoot = null 
 		if ( columns.length < 28 || !columns[1] ) continue;
 		const record = SkillEffectSet_ParseRow( columns );
 		if ( !record.skillEffectId ) continue;
-		if ( primitiveSoundRoot ) {
-			/*
-		================
-		resolveSoundPublicPath
-
-		Only publish sound handles backed by an extracted native resource.
-		================
-		*/
-			const resolveSoundPublicPath = ( soundPath ) => {
-				if ( !soundPath ) return null;
-				const normalized = soundPath.replaceAll( "\\", "/" ).toLowerCase();
-				return fs.existsSync( path.join( primitiveSoundRoot, ...normalized.split( "/" ) ) ) ?
-					`/assets/audio/sfx/prim/snd/${normalized}` :
-					null;
-			};
-			record.soundBeginPublicPath = resolveSoundPublicPath( record.soundBegin );
-			record.soundEndPublicPath = resolveSoundPublicPath( record.soundEnd );
-		}
+		if ( primitiveSoundRoot ) resolveStageSounds( record, primitiveSoundRoot );
 		const rows = out.get( record.skillEffectId ) ?? [];
 		rows.push( record );
 		out.set( record.skillEffectId, rows );
@@ -525,6 +547,36 @@ function deriveTargetResultCapacity( baseName, authoredStages ) {
 
 /*
 ================
+addPortOnlyRows
+
+Port-only, not native: rows another owner adds (portOnly.aniSetRows
+without Service, portOnly.effectSetRows) join the parsed tables as the
+v1.150 rows do; a name v1.150 already authors is a build defect. Their
+sounds resolve under portOnly.soundRoot.
+================
+*/
+function addPortOnlyRows( aniSets, effectSets, portOnly ) {
+	for ( const c of portOnly.aniSetRows ?? [] ) {
+		const record = skillAniSetRecord( c, new Map() );
+		if ( !record ) continue;
+		if ( aniSets.has( record.baseName ) ) throw Error( `port-only skillaniset ${record.baseName} is a v1.150 row` );
+		aniSets.set( record.baseName, record );
+	}
+	const added = new Set();
+	for ( const columns of portOnly.effectSetRows ?? [] ) {
+		const record = SkillEffectSet_ParseRow( columns );
+		if ( !record.skillEffectId ) continue;
+		if ( effectSets.has( record.skillEffectId ) && !added.has( record.skillEffectId ) ) {
+			throw Error( `port-only skilleffectset ${record.skillEffectId} is a v1.150 owner` );
+		}
+		if ( portOnly.soundRoot ) resolveStageSounds( record, portOnly.soundRoot );
+		added.add( record.skillEffectId );
+		effectSets.set( record.skillEffectId, [ ...(effectSets.get( record.skillEffectId ) ?? []), record ] );
+	}
+}
+
+/*
+================
 loadSkillDataRows
 
 Retain both authored names: player ranks and monster skills join differently.
@@ -595,23 +647,39 @@ buildEffectRecordTable
  * name or, for directly-authored monster/pet rows, its exact level name.
  * A row with a Basic_Original that has a record is { remapOf: original }
  * (917240). Rows with no authored skillaniset record remain absent.
+ * Port-only, not native: portOnly (devilSpiritPresentation.mjs
+ * devilSpiritEffectSources) adds rows v1.150 has no copy of, already in
+ * its layout, through the same parsers.
 ================
 */
+/**
+ * @param {string} textdataDir
+ * @param {string} skillEffectPath
+ * @param {any} [primitiveSoundRoot]
+ * @param {any} [clientSkillEffectPath]
+ * @param {{
+ *   aniSetRows?: string[][], effectSetRows?: string[][],
+ *   skillRows?: { id: number, levelName: string, animBaseName: string, originalId: number }[],
+ *   animationSetKeys?: Map<string, number>, soundRoot?: string
+ * } | null} [portOnly]
+ */
 export function buildEffectRecordTable(
 	textdataDir,
 	skillEffectPath,
 	primitiveSoundRoot = null,
-	clientSkillEffectPath = null
+	clientSkillEffectPath = null,
+	portOnly = null
 ) {
 	const aniSets = parseSkillAniSet( skillEffectPath );
 	const parsedEffectSets = parseSkillEffectSet( skillEffectPath, primitiveSoundRoot );
+	if ( portOnly ) addPortOnlyRows( aniSets, parsedEffectSets, portOnly );
 	const effectSets = clientSkillEffectPath ?
 		adaptSkillEffectSetsToClientNative(
 			parsedEffectSets,
 			parseSkillEffectSet( clientSkillEffectPath )
 		) :
 		parsedEffectSets;
-	const rows = loadSkillDataRows( textdataDir );
+	const rows = [ ...loadSkillDataRows( textdataDir ), ...(portOnly?.skillRows ?? []) ];
 	const table = {};
 	let matched = 0;
 	let builtinRegistered = 0;
@@ -635,7 +703,8 @@ export function buildEffectRecordTable(
 		const c0 = ani.readyAnims.length;
 		const c1 = ani.waitAnims.length;
 		const c2 = ani.shotAnims.length;
-		const animSlotKey = animationSetKeyForName( ani.aniGroup );
+		const animSlotKey = animationSetKeyForName( ani.aniGroup ) ??
+			portOnly?.animationSetKeys?.get( ani.aniGroup.toLowerCase() ) ?? null;
 		if ( animSlotKey === null ) {
 			throw new Error(
 				`skillaniset ${ani.baseName}: unknown native AniGroup ${ani.aniGroup}`

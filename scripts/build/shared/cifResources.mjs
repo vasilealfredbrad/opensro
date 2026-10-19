@@ -32,6 +32,7 @@ import { discoverCifLayouts } from "./cifLayoutCatalog.mjs";
 import { applyCifPreprocessor, loadCifDefines } from "./cifPreprocessor.mjs";
 import { runtimeCifButtonImageReferences, runtimeCifImageReferences } from "./cifRuntimeImageCatalog.mjs";
 import { listTextDataShardNames } from "./textDataIo.mjs";
+import { devilSpiritIconReferences } from "../char/devilSpiritData.mjs";
 import {
 	collectSkillGroupIconDdjReferencesFromRows,
 	collectSkillMasteryIconDdjReferencesFromRows
@@ -222,6 +223,9 @@ async function collectItemDataIconDdjReferences() {
 			}
 		}
 	}
+	// Port-only, not native: the Devil's Spirit icons (char/devilSpirit.mjs),
+	// present only when SRO_IMPORT_ROOT supplied their images.
+	for ( const icon of devilSpiritIconReferences() ) iconPaths.add( icon );
 	return [ ...iconPaths ].sort();
 }
 

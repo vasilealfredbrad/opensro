@@ -15,6 +15,7 @@ package combat
 
 import (
 	"opensro.online/server/internal/game/enterworld"
+	"opensro.online/server/internal/game/item/devilspirit"
 	"opensro.online/server/internal/game/item/durability"
 )
 
@@ -146,8 +147,12 @@ func (e ReqiEquipment) testPair(pair enterworld.SkillReqiPair, code uint16) (boo
 		return e.testWeapon(6, pair.Value, code)
 	case reqiAvatarSocket:
 		// CGObjChar_GetAvatarStorageItem(4): the v1.150 client has avatar
-		// sockets 0..3 only, so socket 4 is always empty.
-		return false, code
+		// sockets 0..3 only, so socket 4 is always empty. Port-only, not
+		// native: the later client wears its Devil's Spirit there, and the
+		// port wears it as the attachment (game/item/devilspirit), so a worn,
+		// unexpired one (an expired one carries no options) fills it. With
+		// SRO_DEVIL_SPIRIT off no item is one and the socket stays empty.
+		return e.wornDevilSpirit(), code
 	}
 	return false, code
 }
@@ -264,4 +269,24 @@ func (e ReqiEquipment) armourUsable(index uint32) bool {
 		return false
 	}
 	return e.SlotUsable(reqiArmourSlots[index])
+}
+
+/*
+==================
+wornDevilSpirit
+
+Port-only: whether the character wears a live Devil's Spirit (the later
+client's avatar socket 4, testPair).
+==================
+*/
+func (e ReqiEquipment) wornDevilSpirit() bool {
+	if e.C == nil || e.C.AvatarInventory == nil {
+		return false
+	}
+	for _, row := range e.C.AvatarInventory.Rows {
+		if devilspirit.Is(row.RefObjID) && len(row.MagicOptions) != 0 {
+			return true
+		}
+	}
+	return false
 }

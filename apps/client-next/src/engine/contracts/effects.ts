@@ -301,6 +301,9 @@ export interface EffectFlight {
 			readonly bone: string | null;
 			readonly addHeight: boolean;
 			readonly offset: readonly [number, number, number];
+			// Port-only, not native: the shard's Chain Lightning hop period
+			// (chain-cadence.ts). Absent, the chain flies natively.
+			readonly cadence?: import("@/engine/foundation/animation/chain-cadence").ChainCadence;
 		};
 	};
 }

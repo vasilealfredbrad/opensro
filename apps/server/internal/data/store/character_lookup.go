@@ -72,6 +72,16 @@ func (s *Store) rebuildCharacterLookupLocked(division string) {
 			index.ids[c.ID] = c
 		}
 	}
+	// Ephemeral records (ephemeral.go) resolve after the real rows.
+	for _, c := range s.ephemeralRowsLocked(division) {
+		key := characterLookupName(c.Name)
+		if index.names[key] == nil {
+			index.names[key] = c
+		}
+		if index.ids[c.ID] == nil {
+			index.ids[c.ID] = c
+		}
+	}
 	next := map[string]*characterLookupIndex{}
 	if published := s.characterLookups.Load(); published != nil {
 		for d, i := range *published {

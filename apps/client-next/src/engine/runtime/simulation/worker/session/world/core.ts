@@ -59,7 +59,8 @@ export function createWorldCore( send: ( frame: WireFrame ) => void ) {
 		country: refObjId => entities.characterCountry( refObjId ),
 		playerModels: country => entities.playerModels( country ),
 		item: refObjId => entities.itemReference( refObjId ),
-		monster: codename => entities.monsterReference( codename )
+		monster: codename => entities.monsterReference( codename ),
+		monsters: () => entities.monsterCatalog()
 	} );
 
 	const capeTeams = new Map<number, number>();

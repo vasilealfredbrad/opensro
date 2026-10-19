@@ -25,6 +25,7 @@ package action
 
 import (
 	"errors"
+	"opensro.online/server/internal/game/battleroyale"
 
 	log "github.com/sirupsen/logrus"
 
@@ -122,6 +123,10 @@ func (rt *Runtime) HandleGuildStorageOpen(division string, c *enterworld.Charact
 	}
 	unlock := rt.lockDivision(division)
 	defer unlock()
+	// Port-only: a battle royale match character opens no guild warehouse.
+	if battleroyale.Held(c) {
+		return guildNpcAnswer(opGuildStorageOpened, guildNpcRefused)
+	}
 	if !rt.guildManagerNpc(division, c, gid) {
 		return guildNpcAnswer(opGuildStorageOpened, guildNpcRefused)
 	}

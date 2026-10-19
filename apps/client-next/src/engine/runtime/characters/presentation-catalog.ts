@@ -567,6 +567,15 @@ export function createPresentationCatalog( owners: CatalogOwners ) {
 							if ( entry.moonlit ) equipmentEntries[id + body + ":moonlit"] = entry.moonlit;
 							if ( entry.auxiliary ) auxiliaryEntries[id + body] = entry.auxiliary;
 						}
+						// Port-only, not native: a Devil's Spirit's devil forms, by skill id.
+						for ( const [skill, bodies] of Object.entries( row.looks ?? {} ) ) {
+							if ( !/^\d+$/.test( skill ) || !bodies || typeof bodies !== "object" ) {
+								throw Error( "Invalid devil form" );
+							}
+							for ( const [body, entry] of Object.entries( bodies ) ) {
+								if ( entry !== null ) equipmentEntries[id + body + ":look" + skill] = entry;
+							}
+						}
 					}
 					for (
 						const entry of [

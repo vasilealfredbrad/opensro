@@ -91,6 +91,11 @@ func (s *Store) CreateCharacter(divisionID, accountID string, c *domain.Characte
 			return fmt.Errorf("%w: %q in division %s", ErrCharacterNameConflict, c.Name, divisionID)
 		}
 	}
+	// A live ephemeral record (a battle royale bot, ephemeral.go) holds its
+	// name while it lives.
+	if s.ephemeralNameLocked(divisionID, c.Name) {
+		return fmt.Errorf("%w: %q in division %s", ErrCharacterNameConflict, c.Name, divisionID)
+	}
 	owned := 0
 	for _, existing := range s.characters[divisionID] {
 		if existing.AccountID == accountID {
@@ -151,6 +156,10 @@ func (s *Store) CreateCharacter(divisionID, accountID string, c *domain.Characte
 	id := s.meta.NextCharID[divisionID]
 	if id < 1 {
 		id = s.maxCharIDLocked(divisionID) + 1
+	}
+	// Never the id of a live ephemeral record (ephemeral.go).
+	for s.ephemeralIDLocked(divisionID, id) {
+		id++
 	}
 	if id < 1 || id > domain.MaxCharacterID {
 		return fmt.Errorf("character id space exhausted for division %s (next %d, maximum %d)", divisionID, id, domain.MaxCharacterID)

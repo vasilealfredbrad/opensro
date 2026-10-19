@@ -67,6 +67,11 @@ func HandleGmCommand(deps Dependencies, presence PresenceView, divisionID string
 	if err != nil {
 		return refused(err.Error())
 	}
+	// Port-only: a GM fighting a battle royale match commands nothing until
+	// it is restored (enterworld.Deps.InteractionLockedFor).
+	if locker, ok := deps.(interactionLocker); ok && locker.InteractionLockedFor(divisionID, sender.Name) {
+		return refused(fmt.Sprintf("gmcommand: 0x75B6 from %s refused: locked in a battle royale match", sender.Name))
+	}
 
 	switch request.Subcmd {
 	case SubWarp:

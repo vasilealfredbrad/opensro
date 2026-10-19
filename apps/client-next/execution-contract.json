@@ -719,7 +719,8 @@
 				"request",
 				"take",
 				"cancel",
-				"available"
+				"available",
+				"reportDegradation"
 			]
 		},
 		{
@@ -1994,7 +1995,8 @@
 			"provider": "src/engine/runtime/simulation/worker/session/world/core.ts",
 			"functions": [
 				"country",
-				"playerModels"
+				"playerModels",
+				"monsters"
 			]
 		},
 		{
@@ -2250,6 +2252,39 @@
 				"footprints"
 			],
 			"reason": "The footprint owner publishes or clears its retained decals at the original frame and teardown positions."
+		},
+		{
+			"consumer": "src/engine/runtime/characters/ground-rings.ts",
+			"provider": "src/engine/runtime/renderer/world/world.ts",
+			"functions": [
+				"groundRings",
+				"zoneFog"
+			],
+			"reason": "Port-only: the Battle Royale ring owner publishes or clears the lobby and zone circles (the zone's edge line and fog wall) and the outside-zone scene fog after the frame's actors and at teardown, as the footprint owner publishes its decals."
+		},
+		{
+			"consumer": "src/engine/runtime/characters/fireworks.ts",
+			"provider": "src/engine/runtime/runtime.ts",
+			"functions": [
+				"callback:createCharacterPresentation:3"
+			],
+			"reason": "Port-only: the Battle Royale fireworks voice their shot and explosion through the character presentation's sound sink, as the orbs do."
+		},
+		{
+			"consumer": "src/engine/runtime/characters/fireworks.ts",
+			"provider": "src/engine/runtime/audio/audio.ts",
+			"functions": [
+				"enqueue"
+			],
+			"reason": "Port-only: the fireworks' sounds reach the audio owner's queue through the lent sound sink."
+		},
+		{
+			"consumer": "src/engine/runtime/characters/fireworks.ts",
+			"provider": "src/engine/runtime/characters/presentation-auxiliary.ts",
+			"functions": [
+				"callback"
+			],
+			"reason": "Port-only: an auxiliary owner built without a sound sink (tests) lends its silent default to the fireworks."
 		},
 		{
 			"consumer": "src/engine/foundation/gameplay/player-attack.ts",
@@ -3192,6 +3227,34 @@
 			"reason": "The parent renderer reports whether the Experimental shared actor room is on; it changes nothing."
 		},
 		{
+			"file": "src/engine/runtime/characters/fireworks.ts",
+			"expression": "random",
+			"function": "roll",
+			"kind": "callback",
+			"reason": "Port-only: the fireworks' injected uniform source (Math.random in production, a fixed sequence in tests); the native presentation random stream is left untouched."
+		},
+		{
+			"file": "src/engine/runtime/characters/fireworks.ts",
+			"expression": "resources.failed",
+			"function": "step",
+			"kind": "callback",
+			"reason": "Port-only: the character resource owner, lent through the stage pass, reports a firework program that failed to load."
+		},
+		{
+			"file": "src/engine/runtime/characters/fireworks.ts",
+			"expression": "resources.ready",
+			"function": "step",
+			"kind": "callback",
+			"reason": "Port-only: the character resource owner admits a firework program before its clock starts, as orbs.step does."
+		},
+		{
+			"file": "src/engine/runtime/characters/fireworks.ts",
+			"expression": "resources.duration",
+			"function": "step",
+			"kind": "callback",
+			"reason": "Port-only: the admitted firework program's length ends its actor."
+		},
+		{
 			"file": "src/engine/runtime/characters/presentation-auxiliary.ts",
 			"expression": "resources.duration",
 			"function": "callback:step:2",
@@ -3239,6 +3302,13 @@
 			"function": "resolve",
 			"kind": "callback",
 			"reason": "Characters owner lends this synchronous helper (concealmentSkills) to the per-actor phase; the original loop called it directly."
+		},
+		{
+			"file": "src/engine/runtime/characters/actor-appearance.ts",
+			"expression": "resources.degrade",
+			"function": "resolve",
+			"kind": "callback",
+			"reason": "Port-only: the characters owner lends its resource owner's degraded report to the per-actor phase, so a worn item published for another body is reported once instead of failing the frame."
 		},
 		{
 			"file": "src/engine/runtime/characters/actor-appearance.ts",
@@ -3857,7 +3927,7 @@
 		{
 			"file": "src/engine/runtime/runtime.ts",
 			"function": "frame",
-			"sourceSha256": "ec7d3efe4d0ea1764d99fcb54b084326e5f2c5728494aac934d3b15eb298bf4c",
+			"sourceSha256": "33e5834230fe5a8bd2e40ebac05b0e59e967d2af8e6eb8eb531f5507e3d7f7cf",
 			"reason": "AEBD90 synchronously waits for visibility before AEC180 advances EFP ticks. The browser yields at the GPU readback barrier; the runtime retains the current frame and schedules the next RAF only after completion. Ordinary frames do not await a readback. A hidden frame renders only while a world entry awaits game-ready, under the same barrier: native keeps updating while inactive (A0F430 OnUpdate; A11650 skips drawing) and finishes loading in CPSMission_OnUpdate (728E10). A visible window that gets no RAF for STARVED_FRAME_MS runs the same delivery-paced maintenance frames. Device disposal cancels pending mapping. Startup also hands the asset owner the device texture features once (port-only texture variants), outside the frame.",
 			"evidence": "tests/fixtures/native/bsr-query-native.json",
 			"nativeFunction": 11451792,

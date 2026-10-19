@@ -80,6 +80,11 @@ func HandleLetterSend(deps Dependencies, divisionID string, sender *enterworld.C
 	if request.Receiver == "" {
 		return refusedLetterSend("receiver is empty")
 	}
+	// Port-only: a battle royale participant sends no letters
+	// (enterworld.Deps.InteractionLockedFor).
+	if locker, ok := deps.(interactionLocker); ok && locker.InteractionLockedFor(divisionID, sender.Name) {
+		return refusedLetterSend("sender is locked in a match")
+	}
 	if request.Body == "" {
 		return refusedLetterSend("body is empty")
 	}

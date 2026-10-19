@@ -90,6 +90,13 @@ fixed-query row's 0x100 bit does not select the 0x11/5 query.
 ==================
 */
 func (ops *MonsterMoverOps) acquireSightTarget(division string, instance monster.Instance, from monster.Pose, players []playerPose, tactics monster.Tactics) (playerPose, bool) {
+	// PORT-ONLY, NOT NATIVE: a scripted actor (PortCombat, the battle
+	// royale bots) takes its targets from its controller (ArmRetaliation),
+	// never from its row's sight, so a bot running for the zone is not
+	// pulled back into a fight its brain declined. Nil is native.
+	if instance.PortCombat != nil {
+		return playerPose{}, false
+	}
 	query := instance
 	if instance.Nest.HasControls && instance.Nest.Controls.FixedQuery() {
 		query.Nest.NativeTacticsFlags &^= 0x100

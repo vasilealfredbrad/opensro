@@ -44,7 +44,10 @@ func BetaPlayerMapEnabled() bool {
 runPlayerMap
 
 One roster frame per session, from the same snapshots the peer visibility
-leg reads. A session without appearance (never spawned) is left out.
+leg reads. A session without appearance (never spawned) is left out. A
+MapHidden session (a battle royale lobby member or participant, port-only)
+is left out of everyone's roster and receives an empty one, so neither
+side of the arena sees a marker.
 ================
 */
 func (t *Ticker) runPlayerMap(state *divisionTickState, nowMs int64, sessions []SessionSnapshot) {
@@ -55,7 +58,7 @@ func (t *Ticker) runPlayerMap(state *divisionTickState, nowMs int64, sessions []
 	players := make([]wire.BetaMapPlayer, 0, len(sessions))
 	for i := range sessions {
 		session := &sessions[i]
-		if session.Appearance == nil {
+		if session.Appearance == nil || session.MapHidden {
 			continue
 		}
 		pose := session.World.LiveSpawnAt(nowMs)
@@ -68,7 +71,15 @@ func (t *Ticker) runPlayerMap(state *divisionTickState, nowMs int64, sessions []
 		})
 	}
 	payload := wire.EncodeBetaPlayerMap(players)
+	hidden := wire.EncodeBetaPlayerMap(nil)
 	for i := range sessions {
-		t.Push.PushToSession(sessions[i].SessionID, []Frame{{Opcode: wire.OpBetaPlayerMap, Payload: payload}})
+		if sessions[i].Headless {
+			continue
+		}
+		roster := payload
+		if sessions[i].MapHidden {
+			roster = hidden
+		}
+		t.Push.PushToSession(sessions[i].SessionID, []Frame{{Opcode: wire.OpBetaPlayerMap, Payload: roster}})
 	}
 }

@@ -308,6 +308,11 @@ type Character struct {
 	// MostWanted is the character's job-kill streak (port-only, not native:
 	// SRO_MOST_WANTED, action/mostwanted.go; schema 24). Nil is no streak.
 	MostWanted *MostWanted `json:"mostWanted,omitempty"`
+	// BattleRoyaleHeld holds the real character while this row carries a
+	// battle royale match character (port-only, not native:
+	// SRO_BATTLE_ROYALE, battleroyale_hold.go; schema 28). Nil outside a
+	// match.
+	BattleRoyaleHeld *BattleRoyaleHold `json:"battleRoyaleHeld,omitempty"`
 	// LevelReachedAt is when the character first reached each milestone level
 	// (PublicLevelMilestones), in Unix milliseconds, for the site's
 	// world-firsts (port-only, not native).

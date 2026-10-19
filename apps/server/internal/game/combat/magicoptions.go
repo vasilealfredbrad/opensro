@@ -155,6 +155,20 @@ func magicOptionWrites(codename string, options []magicOption, source uint32) ([
 			for param := uint16(0xae); param <= 0xb1; param++ {
 				add(param, paramkeeper.PercentProduct, -v)
 			}
+		// Port-only, not native: the Devil's Spirit's MATTR_NASRUN_* rows
+		// (game/item/devilspirit), present only with SRO_DEVIL_SPIRIT on.
+		// The later server reads hpna / mpna as a percent of the maximum
+		// HP / MP, brna as a flat block rate and umdu as the stat
+		// (paramUniqueMonsterDamage) the damage against a unique monster
+		// adds (UniqueMonsterDamage).
+		case optionTag("hpna"):
+			add(3, paramkeeper.PercentSum, v)
+		case optionTag("mpna"):
+			add(4, paramkeeper.PercentSum, v)
+		case optionTag("brna"):
+			add(10, paramkeeper.Flat, v)
+		case optionTag("umdu"):
+			add(paramUniqueMonsterDamage, paramkeeper.Flat, v)
 		case optionTag("hr"), optionTag("er"), optionTag("dura"), optionTag("duru"), optionTag("nrep"),
 			optionTag("rein"), optionTag("atha"), optionTag("soli"), optionTag("luck"), optionTag("astr"),
 			optionTag("rep"):

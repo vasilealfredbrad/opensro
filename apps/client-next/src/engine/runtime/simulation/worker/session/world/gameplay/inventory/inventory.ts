@@ -54,6 +54,11 @@ import { isGachaVoucher } from "@/engine/foundation/ui/gacha-window";
 import type { SystemNotice } from "@/engine/foundation/gameplay/system-notices";
 import { createMagicOptionGrant } from "./magic-option/magic-option";
 import { itemStateDelta } from "@/engine/foundation/gameplay/item-state-delta";
+import {
+	DEVIL_SPIRIT_STATE_OPCODE,
+	devilSpiritUpgradeNotice,
+	devilSpiritWornState
+} from "@/engine/foundation/gameplay/devil-spirit";
 import { itemSlotFlashKinds } from "@/engine/foundation/ui/item-slot-effects";
 import { itemMagicDefinitions } from "@/engine/foundation/ui/item-tooltip-magic";
 import { itemMaxDurability } from "@/engine/foundation/ui/item-tooltip-stats";
@@ -1636,8 +1641,24 @@ receive
 						...kinds.map( kind => ({ slot: next.slot, kind, atMs: now }) )
 					];
 				}
+				// Port-only: a Devil's Spirit's raised enhancement says so
+				// (devil-spirit.ts); the chat line rides the exchange notice.
+				exchangeNotice = devilSpiritUpgradeNotice( before, next.item, Math.floor( Date.now() / 1000 ) ) ??
+					exchangeNotice;
 				if ( next.item ) slots.set( next.slot, next.item );
 				else slots.delete( next.slot );
+				published = null;
+				return true;
+			}
+			if ( op === DEVIL_SPIRIT_STATE_OPCODE ) {
+				// Port-only: the Devil's Spirit notification (devil-spirit.ts).
+				// Kinds 2 and 3 are notices only; kind 4 is a worn item's state
+				// in the 0x3645 layout, applied to the avatar storage.
+				const body = devilSpiritWornState( p );
+				if ( !body ) return true;
+				const next = itemStateDelta( body, avatars, refs, names );
+				if ( !next.item ) throw Error( "Devil's Spirit state removed a worn item" );
+				avatars = new Map( avatars ).set( next.slot, next.item );
 				published = null;
 				return true;
 			}

@@ -271,6 +271,12 @@ type BootstrapResult struct {
 	// UiTuning is the shard's client tuning (port-only, uituning.go); nil
 	// while every value is its default, so the blob stays as before.
 	UiTuning *UiTuning
+	// ChainLightningHop tells the client to time Chain Lightning's bolt by
+	// the shard's hop period (port-only, chainhop.go); nil is native.
+	ChainLightningHop *ChainLightningHop
+	// BattleRoyaleLobby tells every client where the Battle Royale lobby
+	// circle stands (port-only, brlobby.go); nil is native.
+	BattleRoyaleLobby *BattleRoyaleLobby
 }
 
 /*
@@ -327,6 +333,8 @@ type bootstrapSuccessView struct {
 	JobSuitHidesArmor         bool                     `json:"jobSuitHidesArmor,omitempty"`
 	MoonlitThiefSuit          bool                     `json:"moonlitThiefSuit,omitempty"`
 	UiTuning                  *UiTuning                `json:"uiTuning,omitempty"`
+	ChainLightningHop         *ChainLightningHop       `json:"chainLightningHop,omitempty"`
+	BattleRoyaleLobby         *BattleRoyaleLobby       `json:"battleRoyaleLobby,omitempty"`
 }
 
 /*
@@ -408,6 +416,8 @@ func (r *BootstrapResult) MarshalJSON() ([]byte, error) {
 		JobSuitHidesArmor:         r.JobSuitHidesArmor,
 		MoonlitThiefSuit:          r.MoonlitThiefSuit,
 		UiTuning:                  r.UiTuning,
+		ChainLightningHop:         r.ChainLightningHop,
+		BattleRoyaleLobby:         r.BattleRoyaleLobby,
 	})
 }
 

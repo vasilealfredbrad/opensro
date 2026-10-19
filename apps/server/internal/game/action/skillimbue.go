@@ -178,6 +178,22 @@ defender's part afterwards: 58F435 adds it after the split.
 ==================
 */
 func (rt *Runtime) resolvePlayerImpactBehindWall(division, name string, skill enterworld.SkillRow, attacker, defender combat.Stats, nowMs int64, chained bool, wall *enterworld.SkillWall) (combat.WallOutcome, error) {
+	out, err := rt.resolvePlayerImpactLanes(division, name, skill, attacker, defender, nowMs, chained, wall)
+	// Port-only, not native: a Devil's Spirit's MATTR_NASRUN_UMDU adds its
+	// percent against a unique monster (combat/uniquemonster.go); without
+	// the option every attacker reads 0 and nothing changes.
+	out.Defender = combat.UniqueMonsterDamage(out.Defender, attacker, defender)
+	return out, err
+}
+
+/*
+==================
+resolvePlayerImpactLanes
+
+The impact's own lanes and the imbue share (resolvePlayerImpactBehindWall).
+==================
+*/
+func (rt *Runtime) resolvePlayerImpactLanes(division, name string, skill enterworld.SkillRow, attacker, defender combat.Stats, nowMs int64, chained bool, wall *enterworld.SkillWall) (combat.WallOutcome, error) {
 	// A status cast has no att block: its record is a successful zero-damage
 	// result with no critical, block or imbue roll (skillstatuscast.go).
 	if skill.StatusCast {

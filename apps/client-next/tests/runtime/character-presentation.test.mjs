@@ -29,6 +29,7 @@ async function load( entry ) {
 const { createCharacterPresentation } = await load( "src/engine/runtime/characters/characters.ts" );
 const { createCharacters } = await load( "src/engine/runtime/renderer/characters/characters.ts" );
 const { createPresentationRandom } = await load( "src/engine/runtime/random/random.ts" );
+const { isDevilSpirit } = await load( "src/engine/foundation/gameplay/devil-spirit.ts" );
 const identity = () => new Float32Array( [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ] );
 /*
 ================
@@ -2869,7 +2870,9 @@ test("event avatars and mall avatars use the same native reference catalog", () 
 		);
 		for ( const [id, visual] of Object.entries( roster.dress.equipment ) ) {
 			const entry = visual.bodies[prefix];
-			if ( visual.avatarSlot === undefined || !entry ) continue;
+			// Port-only: a Devil's Spirit is drawn only as its buff's devil form
+			// (devil-spirit-form.test.mjs).
+			if ( visual.avatarSlot === undefined || !entry || isDevilSpirit( Number( id ) ) ) continue;
 			for ( let i = 0; i < 30; i++ ) {
 				f.presentation.step(
 					[ entity( 1, { kind: "player", avatars: [ { refObjId: Number( id ) } ] } ) ],

@@ -170,6 +170,10 @@ export interface AssetOwner {
 	// acknowledged); each call consumes them. The runtime reports each as a
 	// degraded incident.
 	takeDegradations?(): readonly import("./network").Degradation[];
+	// A presentation owner's skipped cosmetic step over published assets (a
+	// worn item published for another body) joins those faults, so the one
+	// sender that reports them reports it too.
+	reportDegradation?( degradation: import("./network").Degradation ): void;
 	request(
 		url: string,
 		limit?: number,

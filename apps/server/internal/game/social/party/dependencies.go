@@ -13,6 +13,13 @@ type Dependencies interface {
 	CharacterModelRef(character *domain.Character) uint32
 }
 
+// interactionLocker is the optional facet of Dependencies that names a
+// character who can neither form nor join a party for the moment (a
+// battle royale participant, port-only; enterworld.Deps.InteractionLockedFor).
+type interactionLocker interface {
+	InteractionLockedFor(divisionID, characterName string) bool
+}
+
 // Presence is the live-session directory consumed by party delivery and
 // lifecycle hooks.
 type Presence interface {

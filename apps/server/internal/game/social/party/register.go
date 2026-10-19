@@ -234,6 +234,19 @@ func (r *Runtime) Register(hub *transport.Hub) {
 	hub.Handle(OpPartyBanishRequest, r.handleBanish)
 }
 
+/*
+================
+interactionLocked
+
+Port-only: a battle royale participant neither forms nor joins a party
+(the optional interactionLocker facet of the lane's dependencies).
+================
+*/
+func (r *Runtime) interactionLocked(divisionID, characterName string) bool {
+	locker, ok := r.deps.(interactionLocker)
+	return ok && locker.InteractionLockedFor(divisionID, characterName)
+}
+
 // sessionIdentity resolves the bound character or reports the silent
 // discard (unbound sessions never reach party state).
 /*
@@ -447,6 +460,10 @@ func (r *Runtime) handleInvite(s *transport.Session, opcode uint16, payload []by
 		log.Debugf("party: 0x70D5 (invite) refused for %s: %s", actor.Name, refusal)
 		return
 	}
+	if r.interactionLocked(divisionID, actor.Name) || r.interactionLocked(divisionID, target.Name) {
+		log.Debugf("party: 0x70D5 (invite) refused for %s: a side is locked in a match", actor.Name)
+		return
+	}
 	if code := r.inviteRange(divisionID, actor, target); code != 0 {
 		log.Debugf("party: 0x70D5 (invite) refused for %s: %s out of range (%d)", actor.Name, target.Name, code)
 		_ = s.Send(OpCreatePartyAck, []byte{2, code})
@@ -541,6 +558,10 @@ func (r *Runtime) handleJoinInvite(s *transport.Session, opcode uint16, payload 
 	target, targetSession, refusal := r.resolveInviteTarget(divisionID, actor, targetRef)
 	if refusal != "" {
 		log.Debugf("party: 0x751A (join-invite) refused for %s: %s", actor.Name, refusal)
+		return
+	}
+	if r.interactionLocked(divisionID, actor.Name) || r.interactionLocked(divisionID, target.Name) {
+		log.Debugf("party: 0x751A (join-invite) refused for %s: a side is locked in a match", actor.Name)
 		return
 	}
 	// INFERENCE: the in-party proposal has the same target class and reach

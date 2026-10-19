@@ -96,6 +96,7 @@ import { exportDataAsset } from "../shared/dataAssetExport.mjs";
 import { isMainScript } from "../shared/fsUtils.mjs";
 import { readTextDataLinesSync, readTextDataRowsSync, splitTextDataRow } from "../shared/textDataIo.mjs";
 import { readSkillEffectSourceText } from "../char/parseSkillEffect.mjs";
+import { devilSpiritSkillRows } from "../char/devilSpiritData.mjs";
 
 import { gameRoot, publicRoot, retailTextdataRoot } from "../world/paths.mjs";
 import { tooltipAppearanceReferences } from "../../../apps/client-next/src/engine/foundation/ui/skill-tooltip-catalog.ts";
@@ -260,6 +261,11 @@ export async function buildSkillDataAsset() {
 			sourceRows.push( cols );
 		}
 	}
+
+	// Port-only, not native: the Devil's Spirit's devil skills, rows of a
+	// later client in the same layout (devilSpiritData.mjs). The server
+	// teaches them only with SRO_DEVIL_SPIRIT on; unread otherwise.
+	sourceRows.push( ...devilSpiritSkillRows() );
 
 	// Every folded skill-driven sound profile resolves the active CIDecoSkill
 	// id through CSkillData. sub_7f9310 writes source columns 1/3/5/6 to the

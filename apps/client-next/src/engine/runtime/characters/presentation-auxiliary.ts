@@ -5,6 +5,9 @@ presentation-auxiliary.ts - presentation-owned hair, rides, booths and avatar ch
 
 Children follow the committed body selection. Their ids and locomotion
 survive frame publication, and retirement can borrow their current actors.
+The stage pass admits the orb and effect actors into the frame, and with
+them the port-only Battle Royale airdrop fireworks (fireworks.ts), which
+this owner steps there.
 
 ===========================================================================
 */
@@ -40,6 +43,9 @@ import type {
 	ItemPresentation
 } from "./internal/presentation-contract";
 import { STALL_TITLE_MODE } from "@/engine/foundation/gameplay/interaction-approach";
+import type { SoundEvent } from "@/engine/contracts/audio";
+import { createFireworks, type FireworkResources } from "./fireworks";
+import { battleRoyaleShowsAirdrop } from "@/engine/foundation/gameplay/battle-royale-airdrop";
 
 // The ride transform modes 8602C0 reads from ride+0x29D (EffectSyntax_RotationType
 // table CCDB10: none = 0, RT_FIXED = 1, RT_DUMMY = 2).
@@ -137,8 +143,9 @@ interface StageFrame {
 	readonly next: Map<number, CharacterActor>;
 	readonly seconds: number;
 	readonly animationHolders: { actor: CharacterActor; sets: readonly AnimationParticleSet[]; }[];
-	// The local player's pose: past the actor room the nearest effects draw.
-	readonly player: { readonly regionId: number; readonly x: number; readonly z: number; } | undefined;
+	// The local player's pose (past the actor room the nearest effects draw)
+	// and the Battle Royale match and airdrop the fireworks follow.
+	readonly gameplay: Pick<GameplayState, "pose" | "battleRoyale" | "battleRoyaleAirdrop"> | null | undefined;
 }
 
 /*
@@ -148,7 +155,7 @@ StageBindings
 */
 interface StageBindings {
 	readonly renderer: Pick<Renderer, "setCharacterAssembly" | "sharedActorRoom">;
-	readonly resources: { duration( path: string, clip: string ): number; };
+	readonly resources: FireworkResources;
 	readonly effects: {
 		animationModel( path: string ): {
 			bindings: readonly ModelAnimationBinding[];
@@ -167,7 +174,12 @@ interface StageBindings {
 createAuxiliaryPresentation
 ================
 */
-export function createAuxiliaryPresentation( allocateActor: () => number ) {
+export function createAuxiliaryPresentation(
+	allocateActor: () => number,
+	play: ( event: SoundEvent ) => void = () => {}
+) {
+	// Port-only: the Battle Royale airdrop's fireworks.
+	const fireworks = createFireworks( play, allocateActor );
 	// The previous frame's effect actors' squared distances to the player,
 	// ascending, while the shared actor room is on (presentStages).
 	let effectDistances: number[] | undefined;
@@ -325,13 +337,23 @@ export function createAuxiliaryPresentation( allocateActor: () => number ) {
 		================
 		presentStages
 
-		Admits the orb and effect actors into the frame and counts, for the
-		frame probe, the effects that gave way to either bound.
+		Steps the Battle Royale airdrop's fireworks (for a participant, as the
+		maps show the mark), admits them, the orb and the effect
+		actors into the frame and counts, for the frame probe, the effects that
+		gave way to either bound.
 		================
 		*/
 		presentStages( frame: StageFrame, bindings: StageBindings ) {
-			const { orbActors, effectActors, next, seconds, animationHolders, player } = frame;
+			const { orbActors, effectActors, next, seconds, animationHolders, gameplay } = frame;
 			const { renderer, resources, effects, probe } = bindings;
+			const player = gameplay?.pose ?? undefined,
+				airdrop = gameplay?.battleRoyaleAirdrop,
+				fireworkActors = fireworks.step(
+					battleRoyaleShowsAirdrop( gameplay?.battleRoyale, airdrop ) ? airdrop : undefined,
+					player,
+					seconds,
+					resources
+				);
 			// The Experimental shared actor room: next frame's selection ranks
 			// these effects with the characters (character-selection.ts).
 			effectDistances = renderer.sharedActorRoom?.() === true && player ?
@@ -343,14 +365,14 @@ export function createAuxiliaryPresentation( allocateActor: () => number ) {
 			// unbounded list); the port's renderer holds CHARACTER_ACTORS in
 			// all. When the effects outnumber the room left, the nearest draw
 			// instead of the first listed: the same number drop, never more.
-			const room = CHARACTER_ACTORS - next.size - orbActors.length;
+			const room = CHARACTER_ACTORS - next.size - orbActors.length - fireworkActors.length;
 			let admitted = effectActors, gaveWay = 0;
 			if ( effectActors.length > room ) {
 				const nearest = [ ...effectActors ];
 				gaveWay = trimToEffectBudget( nearest, room, player );
 				admitted = nearest;
 			}
-			for ( const actor of [ ...orbActors, ...admitted ] ) {
+			for ( const actor of [ ...orbActors, ...fireworkActors, ...admitted ] ) {
 				if ( next.size >= CHARACTER_ACTORS ) continue;
 				const model = `effect:${actor.gid}:${actor.model}`;
 				renderer.setCharacterAssembly( model, actor.model, [] );
@@ -409,6 +431,7 @@ export function createAuxiliaryPresentation( allocateActor: () => number ) {
 		*/
 		resetStages() {
 			stageAnimations.clear();
+			fireworks.reset();
 			booths.clear();
 			effectDistances = undefined;
 		},

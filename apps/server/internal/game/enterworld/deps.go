@@ -48,6 +48,9 @@ type Deps struct {
 	BrowserReferences *BrowserReferences
 	Roster            *Roster
 	Characters        CharacterSource
+	// Ephemeral admits the live characters nothing persists (port-only,
+	// the battle royale bots, ephemeral.go); nil admits none.
+	Ephemeral EphemeralCharacters
 
 	Items             ItemRefSource
 	Levels            LevelDataSource
@@ -73,6 +76,12 @@ type Deps struct {
 	// MoonlitThiefSuit publishes the port-only SRO_MOONLIT_THIEF_SUIT rule
 	// (action/moonlitthiefsuit.go); false is native.
 	MoonlitThiefSuit bool
+	// ChainLightningHop publishes the port-only SRO_CHAIN_LIGHTNING_HOP_MS
+	// rule (action/chainlightning.go, chainhop.go); nil is native.
+	ChainLightningHop *ChainLightningHop
+	// BattleRoyaleLobby publishes the port-only SRO_BATTLE_ROYALE lobby
+	// circle to every player (brlobby.go); nil is native.
+	BattleRoyaleLobby *BattleRoyaleLobby
 	// StarterRefills are the beta's HP/MP potion refills (starterrefill.go);
 	// empty when the kit is disabled.
 	StarterRefills []StarterRefill
@@ -89,7 +98,17 @@ type Deps struct {
 	NormalizeEntryQuests func(character *Character) error
 	// EntryBetaSilk grants the beta's starter silk once per account
 	// (SRO_BETA_SILK, port-only, action/betasilk.go); nil in native mode.
-	EntryBetaSilk                func(character *Character)
+	EntryBetaSilk func(character *Character)
+	// RestoreHeldCharacter puts a battle royale hold's real record back
+	// before the character spawns, so a crash mid-match never logs the
+	// match character in (port-only, action/battleroyale_entry.go). It runs
+	// before admission, with no door held; nil restores nothing.
+	RestoreHeldCharacter func(divisionID string, character *Character) error
+	// InteractionLocked reports a character whose social and trade
+	// commands are refused for the moment (a battle royale participant,
+	// port-only); the party, letter and GM-command lanes ask it through
+	// InteractionLockedFor. Nil locks nobody.
+	InteractionLocked            func(divisionID, characterName string) bool
 	AdmitCharacterSession        func(divisionID, characterName string, session uint64) error
 	RetireCharacterSession       func(divisionID, characterName string, session uint64)
 	EntryActionSpeed             func(divisionID, characterName string) float32
@@ -216,6 +235,20 @@ func (d *Deps) NpcSpawnPolicy() NpcSpawnConfig {
 		return NpcSpawnConfig{}
 	}
 	return d.NpcSpawns
+}
+
+/*
+================
+InteractionLockedFor
+
+Whether a character's social and trade commands are refused right now
+(InteractionLocked); the party, letter and GM-command lanes assert this
+method on their dependencies, so a composition without the hook locks
+nobody.
+================
+*/
+func (d *Deps) InteractionLockedFor(divisionID, characterName string) bool {
+	return d.InteractionLocked != nil && d.InteractionLocked(divisionID, characterName)
 }
 
 // Mutate routes an accepted single-character mutation through its commit
@@ -448,6 +481,9 @@ func (d *Deps) ReentryPackets(divisionID, characterName string) ([]Packet, bool)
 	projection.RestoreEntryEffects = nil // Caller already owns the live actor transaction.
 	projection.PrepareEntry = nil
 	projection.AdoptEntrySpawn = nil
+	// A re-entry is the hold's own move into the arena: the held record
+	// stays held (the restore hook takes the division lock the caller holds).
+	projection.RestoreHeldCharacter = nil
 	result := Build(&projection, BootstrapRequest{
 		DivisionID:    divisionID,
 		CharacterName: characterName,

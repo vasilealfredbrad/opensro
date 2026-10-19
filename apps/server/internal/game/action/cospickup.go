@@ -12,6 +12,7 @@ immediate completion and the existing asynchronous pet approach lifecycle.
 package action
 
 import (
+	"opensro.online/server/internal/game/battleroyale"
 	"strings"
 
 	"opensro.online/server/internal/game/enterworld"
@@ -103,6 +104,10 @@ GID can bypass the same ownership and inventory checks as manual pet pickup.
 */
 func (rt *Runtime) handleCosPickupCommand(division string, c *enterworld.Character, command wire.CosCommand) OpResult {
 	refused := OpResult{Frames: []wire.Frame{cosPickupAcknowledgement(command, cosPickupUnavailable)}}
+	// Port-only: no pick-up pet works for a battle royale match character.
+	if battleroyale.Held(c) {
+		return refused
+	}
 	snapshot, ref := rt.commandCOSSnapshot(division, c, command.CosGid)
 	if snapshot == nil || snapshot.CompanionByGID(command.CosGid).Mounted || command.TargetGid == 0 || ref.TidWord>>11 != 4 {
 		return refused

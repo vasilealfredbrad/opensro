@@ -10,6 +10,7 @@ import { writeIntoPublicTreeSync } from "../shared/publicWrite.mjs";
 import { loadEquipmentRecords } from "./equipmentVisualRecords.mjs";
 import { attachedMotionMetadata, pickAttachedMotionClips } from "./attachedMotionClips.mjs";
 import { expandCharacterInfoCodenames } from "../shared/characterInfo.mjs";
+import { devilSpiritMotionSets, loadDevilSpiritPresentation } from "./devilSpiritPresentation.mjs";
 // Animation Level B asset step: publish the RAW character .ban files used by
 // the live motion plane (idle, locomotion, attack, pickup, hit, sit, and death) as
 // browser-fetchable public assets, plus a manifest the WIP bridge uses to
@@ -168,6 +169,7 @@ export async function buildLocomotionBanAssets() {
 	const { resolved, missing } = resolveRoster( textdataDir );
 	if ( missing.length ) throw new Error( `[anim] unresolved codenames: ${missing.join( ", " )}` );
 	const soundProfileByModel = parseCharacterSoundProfiles( skillEffectPath );
+	const devilSpirit = loadDevilSpiritPresentation();
 
 	const publishedByPath = new Map();
 	const models = {};
@@ -413,6 +415,23 @@ export async function buildLocomotionBanAssets() {
 			}
 			if ( Object.keys( states ).length > 0 ) {
 				entry.animationSets[setName] = states;
+			}
+		}
+		// Port-only, not native: the devil skills' cast and devil form motions
+		// from SRO_IMPORT_ROOT (devilSpiritPresentation.mjs), sets v1.150's
+		// BSRs do not have. The later client's BSR state tables are not in the
+		// import, so the states carry no events or warp curve.
+		for ( const [setName, states] of Object.entries( devilSpiritMotionSets( devilSpirit, model.codename ) ) ) {
+			if ( entry.animationSets[setName] ) {
+				throw new Error( `[anim] ${model.codename}: ${setName} is a v1.150 set` );
+			}
+			entry.animationSets[setName] = {};
+			for ( const [stateId, gamePath] of Object.entries( states ) ) {
+				entry.animationSets[setName][stateId] = {
+					...(await publishClip( gamePath, publishedByPath )),
+					...pickAnimationStateTableMetadata( undefined )
+				};
+				clipCount += 1;
 			}
 		}
 		if (

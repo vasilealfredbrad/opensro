@@ -73,6 +73,62 @@ const OPENERS = {
 		};
 		f.ui.event( { kind: "activate", id: "open-window:Storage" } );
 	},
+	"GM Panel"( f ) {
+		// The window is drawn only for a GM character (gm-panel-hud.ts).
+		f.state.gameplay.eligibility = { gm: true, pcRoomEvent: false };
+		f.ui.event( { kind: "activate", id: "open-window:GM Panel" } );
+	},
+	"Battle Royale"( f ) {
+		// Port-only: joining the Battle Royale lobby opens the build picker
+		// (br-hud.ts); the server's match frame makes the player a member. A
+		// GM member also gets the bot settings row on the hint and in the
+		// picker (Stage 7), whose ids must stay apart.
+		const circle = { x: 0, z: 0, radius: 0 };
+		f.state.gameplay.eligibility = { gm: true, pcRoomEvent: false };
+		f.state.gameplay.battleRoyaleBots = {
+			enabled: true,
+			difficulty: 1,
+			configured: 20,
+			bots: [],
+			names: [],
+			sequence: 1
+		};
+		f.state.gameplay.battleRoyale = {
+			phase: "lobby",
+			role: "member",
+			build: 0,
+			lobby: { x: 222870, z: 173130, radius: 150 },
+			members: 1,
+			alive: 0,
+			countdownEndsAtMs: 0,
+			zonePhase: 0,
+			zonePhases: 5,
+			stage: "waiting",
+			stageStartedAtMs: 0,
+			stageEndsAtMs: 0,
+			current: circle,
+			next: circle,
+			damagePerSec: 0,
+			winner: "",
+			receivedAtMs: 0,
+			sequence: 1
+		};
+	},
+	"Battle Royale results"( f ) {
+		// Port-only: the match's final scoreboard (0x3FB3) opens the results
+		// window (br-hud.ts); a new gameplay object, as the worker publishes.
+		f.state.gameplay = {
+			...f.state.gameplay,
+			battleRoyaleScoreboard: {
+				final: true,
+				entries: [
+					{ name: "Gina", kills: 2, placement: 1, self: false },
+					{ name: "test", kills: 0, placement: 2, self: true }
+				],
+				sequence: 1
+			}
+		};
+	},
 	"Academy Matching"( f ) {
 		f.state.gameplay.academy = { member: false, rows: [], request: null, page: 0 };
 		f.ui.event( { kind: "activate", id: "open-window:Academy Matching" } );

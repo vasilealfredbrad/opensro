@@ -23,63 +23,65 @@ import { isMainScript } from "../shared/fsUtils.mjs";
 import { writeJsonIfChangedSync } from "../shared/jsonOut.mjs";
 import { refreshPrecompressedSidecars } from "../generatedManifestSidecars.mjs";
 
-import {
-  clientV150ResinfoRoot,
-  extractedRoot,
-  publicRoot,
-  retailTextdataRoot,
-} from "../world/paths.mjs";
+import { clientV150ResinfoRoot, extractedRoot, publicRoot, retailTextdataRoot } from "../world/paths.mjs";
 import { buildEffectRecordTable } from "./parseSkillEffect.mjs";
+import { devilSpiritEffectSources, loadDevilSpiritPresentation } from "./devilSpiritPresentation.mjs";
 
 const textdataDir = retailTextdataRoot;
-const skillEffectPath = path.join(textdataDir, "skilleffect.txt");
-const clientSkillEffectPath = path.join(clientV150ResinfoRoot, "skilleffect.txt");
-const primitiveSoundRoot = path.join(extractedRoot, "Data_extracted", "prim", "snd");
+const skillEffectPath = path.join( textdataDir, "skilleffect.txt" );
+const clientSkillEffectPath = path.join( clientV150ResinfoRoot, "skilleffect.txt" );
+const primitiveSoundRoot = path.join( extractedRoot, "Data_extracted", "prim", "snd" );
 
 export async function buildSkillEffectRecordsAsset() {
-  if (!fs.existsSync(textdataDir) || !fs.existsSync(skillEffectPath)) {
-    console.warn(
-      `[skill-effect-records] source missing (${textdataDir} / ${skillEffectPath}) - skipping`
-    );
-    return { written: false, records: 0 };
-  }
+	if ( !fs.existsSync( textdataDir ) || !fs.existsSync( skillEffectPath ) ) {
+		console.warn(
+			`[skill-effect-records] source missing (${textdataDir} / ${skillEffectPath}) - skipping`
+		);
+		return { written: false, records: 0 };
+	}
 
-  const {
-    table, namedTable,
-    skillDataRows,
-    aniSets,
-    effectSets,
-    matched,
-    builtinRegistered,
-  } = buildEffectRecordTable(
-    textdataDir,
-    skillEffectPath,
-    primitiveSoundRoot,
-    clientSkillEffectPath,
-  );
-  const records = Object.keys(table).length;
+	const {
+		table,
+		namedTable,
+		skillDataRows,
+		aniSets,
+		effectSets,
+		matched,
+		builtinRegistered
+	} = buildEffectRecordTable(
+		textdataDir,
+		skillEffectPath,
+		primitiveSoundRoot,
+		clientSkillEffectPath,
+		// Port-only, not native: the devil skills' cast and devil form rows
+		// from SRO_IMPORT_ROOT (devilSpiritPresentation.mjs); none without one.
+		devilSpiritEffectSources( loadDevilSpiritPresentation() )
+	);
+	const records = Object.keys( table ).length;
 
-  const outDir = path.join(publicRoot, "assets", "skill");
-  fs.mkdirSync(outDir, { recursive: true });
-  const outPath = path.join(outDir, "effectRecords.json");
-  // The asset is a plain { id -> record } map. Positive keys are SkillData
-  // ids; built-ins use the signed int32 representation read by sub_917240.
-  writeJsonIfChangedSync(outPath, table);
-  const namedPath = path.join(outDir, "namedEffectRecords.json");
-  writeJsonIfChangedSync(namedPath, namedTable);
-  await refreshPrecompressedSidecars(
-    [outPath, namedPath],
-    { onlyWhenStale: true },
-  );
+	const outDir = path.join( publicRoot, "assets", "skill" );
+	fs.mkdirSync( outDir, { recursive: true } );
+	const outPath = path.join( outDir, "effectRecords.json" );
+	// The asset is a plain { id -> record } map. Positive keys are SkillData
+	// ids; built-ins use the signed int32 representation read by sub_917240.
+	writeJsonIfChangedSync( outPath, table );
+	const namedPath = path.join( outDir, "namedEffectRecords.json" );
+	writeJsonIfChangedSync( namedPath, namedTable );
+	await refreshPrecompressedSidecars(
+		[ outPath, namedPath ],
+		{ onlyWhenStale: true }
+	);
 
-  console.log(
-    `[skill-effect-records] wrote ${records} records (${matched} SkillData joins + ${builtinRegistered} built-ins; ${skillDataRows} SkillData rows, ${aniSets} anim sets, ${effectSets} authored stage owners) -> ${path.relative(publicRoot, outPath)}`
-  );
-  return { written: true, records, outPath };
+	console.log(
+		`[skill-effect-records] wrote ${records} records (${matched} SkillData joins + ${builtinRegistered} built-ins; ${skillDataRows} SkillData rows, ${aniSets} anim sets, ${effectSets} authored stage owners) -> ${
+			path.relative( publicRoot, outPath )
+		}`
+	);
+	return { written: true, records, outPath };
 }
 
 // Run directly (node scripts/build/char/buildSkillEffectRecords.mjs) or via
 // the char build aggregator.
-if (isMainScript(import.meta.url)) {
-  await buildSkillEffectRecordsAsset();
+if ( isMainScript( import.meta.url ) ) {
+	await buildSkillEffectRecordsAsset();
 }

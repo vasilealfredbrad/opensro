@@ -84,6 +84,9 @@ func (game *gameplayPlane) newMissionTicker(peerReferences *action.PeerReference
 	}
 	ticker = worldsession.NewTicker(game.hub, game.items.NpcRoster, hooks...)
 	ticker.Source.(*worldsession.Bridge).PopulationLease = game.items.CharacterPopulationLease
+	// Port-only: the battle royale bots are characters no session drives
+	// (stage 8); the mode off lists none.
+	ticker.Headless = game.battleRoyaleHeadless
 	ticker.BeforeHooks = []simulation.TickHook{game.items.MonsterActionTickHook()}
 	// A peer's spawn row is preceded by the item references it names (#340).
 	ticker.ItemReferences = peerReferences.Frames
@@ -127,6 +130,12 @@ func (game *gameplayPlane) newMissionTicker(peerReferences *action.PeerReference
 			"simulation: monster mover wired with %d template nest row(s)",
 			game.deps.MonsterState.TemplateSize(),
 		)
+		// Port-only: the battle royale bots are steered with the same
+		// movement owner (a copy: the shard clones keep their own scope
+		// maps; the tick hooks run after every shard, so the population
+		// lock orders the two).
+		steer := *ticker.Monsters
+		game.items.MonsterSteer = &steer
 	}
 
 	return ticker

@@ -50,6 +50,7 @@ type residentSkill struct {
 	ContinueBasicAttack     bool
 	NameAttackContent       bool
 	AssistsCompanions       bool
+	PortOnly                bool
 	ProjectileSpeed         uint32
 	ActionHandler           SkillActionHandler
 	Concealment             SkillConcealment
@@ -167,6 +168,7 @@ func compactSkill(row SkillRow) residentSkill {
 		ContinueBasicAttack:     row.ContinueBasicAttack,
 		NameAttackContent:       row.NameAttackContent,
 		AssistsCompanions:       row.AssistsCompanions,
+		PortOnly:                row.PortOnly,
 		ProjectileSpeed:         row.ProjectileSpeed,
 		ActionHandler:           row.ActionHandler,
 		Concealment:             row.Concealment,
@@ -287,6 +289,7 @@ func (r residentSkill) value() SkillRow {
 		ContinueBasicAttack:     r.ContinueBasicAttack,
 		NameAttackContent:       r.NameAttackContent,
 		AssistsCompanions:       r.AssistsCompanions,
+		PortOnly:                r.PortOnly,
 		ProjectileSpeed:         r.ProjectileSpeed,
 		ActionHandler:           r.ActionHandler,
 		Concealment:             r.Concealment,

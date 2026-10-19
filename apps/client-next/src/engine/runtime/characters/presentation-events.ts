@@ -47,6 +47,7 @@ interface PresentationEventEffects {
 				| "inventory"
 				| "attachedEffects"
 				| "homingProjectiles"
+				| "chainLightningHop"
 			>
 			| null,
 		now: number,
@@ -276,7 +277,8 @@ export function createPresentationEvents() {
 					questMarkers: gameplay.questMarkers,
 					inventory: gameplay.inventory,
 					attachedEffects: gameplay.attachedEffects,
-					...(gameplay.homingProjectiles ? { homingProjectiles: gameplay.homingProjectiles } : {})
+					...(gameplay.homingProjectiles ? { homingProjectiles: gameplay.homingProjectiles } : {}),
+					...(gameplay.chainLightningHop ? { chainLightningHop: gameplay.chainLightningHop } : {})
 				} :
 				gameplay;
 			const effectActors = effects.step(

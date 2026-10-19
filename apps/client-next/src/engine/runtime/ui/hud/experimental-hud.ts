@@ -222,6 +222,11 @@ export const EXPERIMENTAL_TABS: readonly {
 			id: "experimental-confirm-guild-ban",
 			label: "Confirm guild ban",
 			description: "Ask before Withdraw bans a guild member."
+		}, {
+			key: "compassEverywhere",
+			id: "experimental-compass-everywhere",
+			label: "Compass everywhere",
+			description: "Also show the compass outside Battle Royale."
 		} ]
 	}
 ];

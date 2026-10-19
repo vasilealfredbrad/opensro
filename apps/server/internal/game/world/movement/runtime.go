@@ -114,6 +114,12 @@ type Runtime struct {
 	// the local entry snapshot carries); peer spawn rows publish it.
 	ActionSpeed func(divisionID, characterName string) float32
 	SpawnSkills func(divisionID, characterName string) []enterworld.EntrySkill
+	// MapHidden (port-only, not native) says whether a character stays off
+	// the beta player map (simulation.SessionSnapshot.MapHidden): the
+	// battle royale lobby members and participants. It is called inside the
+	// character read door with the live record, so it must not take a
+	// store door of its own. Nil hides nobody.
+	MapHidden func(divisionID string, character *enterworld.Character) bool
 	// Now abstracts the clock for deterministic tests.
 	Now func() time.Time
 

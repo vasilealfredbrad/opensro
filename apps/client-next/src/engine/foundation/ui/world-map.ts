@@ -604,3 +604,40 @@ export function worldMapPointMarkers<
 		return rect && mapLabelVisible( rect, view.clip ) ? [ { point, rect } ] : [];
 	} );
 }
+
+// A map unit is ten world grid units (one metre).
+const GRID_UNITS_PER_MAP_UNIT = 10;
+
+/*
+================
+worldMapEllipse
+
+Port-only: a circle in world grid units (sectorX * 1920 + local) on the
+map's page, as the marker projection places points: its centre and its
+two radii in pixels (the page's axes may scale differently). The Battle
+Royale zone (br-hud.ts) draws it as a ring.
+================
+*/
+export function worldMapEllipse(
+	view: {
+		readonly page: number;
+		readonly clip: UiRect;
+		readonly pan: readonly [number, number];
+		readonly center: Pose;
+	},
+	circle: { readonly x: number; readonly z: number; readonly radius: number; }
+): { readonly x: number; readonly y: number; readonly rx: number; readonly ry: number; } {
+	const { left, right, top, bottom, width, height, ox, oy } = worldMapFrame(
+		view.page,
+		view.clip,
+		view.pan,
+		view.center
+	);
+	const sx = width / (right - left), sy = height / (top - bottom);
+	return {
+		x: ox + (circle.x / GRID_UNITS_PER_MAP_UNIT - left) * sx,
+		y: oy + (top - circle.z / GRID_UNITS_PER_MAP_UNIT) * sy,
+		rx: circle.radius / GRID_UNITS_PER_MAP_UNIT * sx,
+		ry: circle.radius / GRID_UNITS_PER_MAP_UNIT * sy
+	};
+}

@@ -55,6 +55,9 @@ Cold records omit transient effects; active effect owners keep actors resident.
 */
 type monsterStorage struct {
 	linkedEffects map[uint32]*monster.EffectSnapshot
+	// portCombat mirrors the port-only combat projection (monster.
+	// PortCombat, the battle royale bots); nil for every native actor.
+	portCombat    map[uint32]*monster.PortCombat
 	selfEffects   map[uint32]monster.SelfEffects
 	targetEffects map[uint32]monster.TargetEffects
 	hot           map[uint32]residentMonster
@@ -93,6 +96,14 @@ func (s *monsterStorage) set(gid uint32, row monster.Instance) {
 		s.linkedEffects[gid] = row.LinkedEffects
 	} else {
 		delete(s.linkedEffects, gid)
+	}
+	if row.PortCombat != nil {
+		if s.portCombat == nil {
+			s.portCombat = make(map[uint32]*monster.PortCombat)
+		}
+		s.portCombat[gid] = row.PortCombat
+	} else {
+		delete(s.portCombat, gid)
 	}
 	if row.SelfEffects != (monster.SelfEffects{}) {
 		if s.selfEffects == nil {
@@ -162,6 +173,7 @@ Join sparse transient state onto a detached resident value.
 func (s *monsterStorage) hotValue(gid uint32, r residentMonster) monster.Instance {
 	row := r.value(gid)
 	row.LinkedEffects = s.linkedEffects[gid]
+	row.PortCombat = s.portCombat[gid]
 	row.Abnormal = s.abnormal[gid]
 	row.SelfEffects = s.selfEffects[gid]
 	row.TargetEffects = s.targetEffects[gid]
@@ -266,6 +278,7 @@ Retire all projections owned by an actor, including sparse effect mirrors.
 */
 func (s *monsterStorage) remove(gid uint32) {
 	delete(s.linkedEffects, gid)
+	delete(s.portCombat, gid)
 	delete(s.selfEffects, gid)
 	delete(s.targetEffects, gid)
 	delete(s.hot, gid)
@@ -309,7 +322,7 @@ command history must remain resident until their owners retire them.
 ================
 */
 func (s *monsterStorage) freeze(gid uint32) {
-	if s.linkedEffects[gid] != nil || s.selfEffects[gid] != (monster.SelfEffects{}) ||
+	if s.linkedEffects[gid] != nil || s.portCombat[gid] != nil || s.selfEffects[gid] != (monster.SelfEffects{}) ||
 		s.targetEffects[gid] != (monster.TargetEffects{}) {
 		return
 	}

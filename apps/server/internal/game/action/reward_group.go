@@ -90,6 +90,8 @@ func (rt *Runtime) monsterRewardRoster(division string, actor *enterworld.Charac
 	// off. The slice is a fresh copy of the live pointers, so
 	// the field reads below stay inside the door.
 	characters := rt.deps.CharactersForDivision(division)
+	// Port-only: the battle royale bots are characters the source never lists.
+	characters = append(characters, rt.battleRoyaleBotCharacters(division)...)
 	rt.deps.Read(division, func() {
 		for _, c := range characters {
 			if c == nil || c.DeletePending {
@@ -385,10 +387,7 @@ func (rt *Runtime) settleMonsterInsideDoor(division string, actor *enterworld.Ch
 			exp, sexp = paramJobRewardBonus(a.character, exp, sexp, now)
 			// Port-only, not native (thiefparty.go): the member's party's thieves.
 			exp = thiefPartyExp(exp, rt.thiefPartyPercent(division, a.party, settings))
-			var frames []wire.Frame
-			if rt.UpdateExperience != nil && (exp != 0 || sexp != 0) {
-				frames, _ = rt.UpdateExperience(a.character, exp, sexp, impact.Instance.Gid)
-			}
+			frames := rt.grantMonsterExperience(division, a.character, exp, sexp, impact.Instance.Gid)
 			out.public = append(out.public, wire.ProgressionBroadcastFrames(frames)...)
 			if a.character != actor {
 				out.otherPublic = append(out.otherPublic, wire.ProgressionBroadcastFrames(frames)...)
@@ -428,5 +427,8 @@ func (rt *Runtime) settleMonsterInsideDoor(division string, actor *enterworld.Ch
 		}
 	}
 	rt.Monsters.ArmNestFromReward(division, impact.Instance.Gid, count)
+	// Port-only, not native: a battle royale bot's body died
+	// (battleroyale_bots.go); a nil mode returns at once.
+	rt.battleRoyaleBotDied(division, actor, impact.Instance.Gid, now)
 	return out
 }

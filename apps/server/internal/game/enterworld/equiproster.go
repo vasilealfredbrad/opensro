@@ -68,6 +68,10 @@ type ItemRef struct {
 	// this row's cap (port-only, stacksizes.go); 0 when the row keeps its
 	// native cap. Read it through NativeStackCap.
 	NativeMaxStack uint16
+	// PortOnlyMagicOptions are the encoded magic options every instance of
+	// a port-only row is made with (portonlyitems.go); nil for every
+	// retail row.
+	PortOnlyMagicOptions []uint64 `json:",omitempty"`
 
 	// Equip requirement columns, typed for the server-side equip gates (the
 	// native client's full-mask sub_789c60 bits compare the same

@@ -61,6 +61,32 @@ export const retailTextdataRoot = path.join( mediaExtractedRoot, "server_dep", "
 // complete server textdata corpus.
 export const clientV150ResinfoRoot = path.join( mediaExtractedRoot, "resinfo" );
 
+// Port-only, not native: SRO_IMPORT_ROOT names an extraction of a LATER
+// client (Data_extracted, Media_extracted, ...) whose files the build may
+// use where the v1.150 client has none (the Devil's Spirit,
+// scripts/build/char/devilSpirit.mjs). sro_paths.py owns the same rule.
+export const IMPORT_ROOT_ENV = "SRO_IMPORT_ROOT";
+
+/*
+================
+resolveImportRoot
+
+The import's absolute root, or null when unset. Only an absolute path is
+accepted, so the answer never depends on the working directory.
+================
+*/
+export function resolveImportRoot( env = process.env ) {
+	const configured = env[IMPORT_ROOT_ENV]?.trim();
+	if ( !configured ) return null;
+	if ( !path.isAbsolute( configured ) ) {
+		throw Error( `${IMPORT_ROOT_ENV} must be an absolute path, not ${JSON.stringify( configured )}` );
+	}
+	return path.resolve( configured );
+}
+
+export const importRoot = resolveImportRoot();
+export const importDataRoot = importRoot ? path.join( importRoot, "Data_extracted" ) : null;
+
 // The generated tree has one owner (scripts/lib/generatedRoot.mjs), which
 // honours SRO_GENERATED_ROOT.
 export const generatedRoot = GENERATED_ROOT;

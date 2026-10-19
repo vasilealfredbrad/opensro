@@ -65,6 +65,10 @@ export interface EquipmentRecord {
 	model: string | null;
 	source: number | null;
 	bodies: Record<string, SetEntry | null>;
+	// Port-only, not native: a Devil's Spirit's devil forms, by devil skill
+	// id and body (scripts/build/char/devilSpirit.mjs). Such a record has no
+	// look of its own: it is drawn only as the form of a running buff.
+	looks?: Record<string, Record<string, SetEntry | null>>;
 }
 
 export interface DressCatalog {
@@ -90,7 +94,9 @@ export interface AppearanceInput {
 	readonly dress: DressCatalog;
 	// Worn sockets 0..8; other inventory rows are ignored.
 	readonly equipment: readonly WornItem[];
-	readonly avatars: readonly { readonly refObjId: number; }[];
+	// look: the devil buff (skill id) whose form a Devil's Spirit wears
+	// (devil-spirit.ts devilSpiritAvatars); port-only, not native.
+	readonly avatars: readonly { readonly refObjId: number; readonly look?: number; }[];
 	readonly hwanHair: boolean;
 	readonly mounted: boolean;
 	readonly weaponHidden: boolean;
@@ -107,6 +113,12 @@ export interface AppearanceInput {
 	readonly jobSuitHidesArmor?: boolean;
 	// Port-only, not native: the server's SRO_MOONLIT_THIEF_SUIT.
 	readonly moonlitThiefSuit?: boolean;
+	// A world actor's worn item published for another body is set aside and
+	// listed in the assembly's degraded ids instead of failing the frame. A
+	// Battle Royale race swap (port-only) re-enters the world as the other
+	// race, and its body may reach presentation a frame before the converted
+	// equipment does (apps/client-next AGENTS.md, "Degraded reports").
+	readonly lenientBodies?: boolean;
 }
 
 export interface AppearanceAssembly {
@@ -117,6 +129,8 @@ export interface AppearanceAssembly {
 	readonly particles: ModelParticle[];
 	readonly defaultWear: readonly string[];
 	readonly avatarIds: readonly number[];
+	// The worn items lenientBodies set aside: published for another body.
+	readonly degraded: readonly number[];
 }
 
 /*
@@ -190,7 +204,8 @@ assembleEquipmentAppearance
 
 Native slot visuals for one wearer. Validation is strict: a referenced item
 missing from the catalog, or published for another socket or body, is an
-error, never a silently undressed actor.
+error, never a silently undressed actor. Only a world actor's caller may
+ask lenientBodies, and it reports every item set aside.
 ================
 */
 export function assembleEquipmentAppearance( input: AppearanceInput ): AppearanceAssembly {
@@ -199,14 +214,21 @@ export function assembleEquipmentAppearance( input: AppearanceInput ): Appearanc
 	const parts: CharacterAttachment[] = [];
 	const auxiliary: { id: number; entry: AuxiliaryEntry; }[] = [];
 	const particles: ModelParticle[] = [];
+	// Port-only, not native: a record with devil forms is worn only as the
+	// form of a running devil buff; untagged, it draws and hides nothing.
+	const avatars = input.avatars.filter( item =>
+		!dress.equipment?.[String( item.refObjId )]?.looks || item.look !== undefined
+	);
 	const worn = [
 		...input.equipment.filter( i => i.slot >= 0 && i.slot < WORN_SLOT_COUNT ).map( i => ({
 			slot: i.slot,
 			refObjId: i.refObjId,
 			avatar: false
 		}) ),
-		...input.avatars.map( i => ({ slot: -1, refObjId: i.refObjId, avatar: true }) )
+		...avatars.map( i => ({ slot: -1, refObjId: i.refObjId, avatar: true }) )
 	];
+	// Items published for another body (lenientBodies): drawn as nothing.
+	const mismatched = new Set<number>();
 	for ( const item of worn ) {
 		const visual = dress.equipment?.[String( item.refObjId )];
 		if ( !visual ) throw Error( "Missing native equipment visual catalog/reference " + item.refObjId );
@@ -216,13 +238,16 @@ export function assembleEquipmentAppearance( input: AppearanceInput ): Appearanc
 				visual.slot !== null && visual.slot !== item.slot
 		) throw Error( "Equipment visual socket mismatch " + item.refObjId );
 		if ( (visual.slot !== null || item.avatar) && visual.bodies[prefix] === undefined ) {
-			throw Error( "Equipment visual body mismatch " + item.refObjId + ": " + prefix );
+			if ( !input.lenientBodies ) {
+				throw Error( "Equipment visual body mismatch " + item.refObjId + ": " + prefix );
+			}
+			mismatched.add( item.refObjId );
 		}
 	}
 	const resolvable = new Set(
 		worn.filter( item => {
 			const v = dress.equipment![String( item.refObjId )]!;
-			return (item.avatar || v.slot !== null) && v.bodies[prefix] !== null;
+			return (item.avatar || v.slot !== null) && v.bodies[prefix] !== null && !mismatched.has( item.refObjId );
 		} ).map( item => item.refObjId )
 	);
 	const selectedVisuals = selectEquipmentVisuals(
@@ -271,6 +296,7 @@ export function assembleEquipmentAppearance( input: AppearanceInput ): Appearanc
 		const published = visual.bodies[prefix];
 		// Explicit null means BOTH native resource sources are empty. A
 		// missing conversion remains an error, never a fabricated helmet.
+		if ( published === undefined && mismatched.has( item.refObjId ) ) continue;
 		if ( published === undefined ) throw Error( `Equipment visual body mismatch ${item.refObjId}: ${prefix}` );
 		if ( published === null ) continue;
 		// Port-only, not native: the level-20 thief suit's Moonlit Ash model.
@@ -318,11 +344,13 @@ export function assembleEquipmentAppearance( input: AppearanceInput ): Appearanc
 			}
 		}
 	}
-	for ( const item of input.avatars ) {
+	for ( const item of avatars ) {
 		if ( !avatarIds.has( item.refObjId ) ) continue;
 		const visual = dress.equipment?.[String( item.refObjId )];
 		if ( visual?.avatarSlot === undefined ) throw Error( `Missing native avatar visual ${item.refObjId}` );
-		const entry = visual.bodies[prefix];
+		const form = item.look === undefined ? undefined : visual.looks?.[String( item.look )];
+		const entry = form ? form[prefix] : visual.bodies[prefix];
+		if ( entry === undefined && mismatched.has( item.refObjId ) ) continue;
 		if ( entry === undefined ) throw Error( `Missing cosmetic attachment ${prefix}/${item.refObjId}` );
 		if ( entry === null ) continue;
 		// Native item masks already decide admission. Mesh coverage hides
@@ -348,5 +376,5 @@ export function assembleEquipmentAppearance( input: AppearanceInput ): Appearanc
 		if ( !hair ) throw new Error( `Missing Hwan hair ${prefix}` );
 		parts.push( { model: hair.glb, parts: [], covers: coverIndices( hair, resource ) } );
 	}
-	return { parts, auxiliary, particles, defaultWear, avatarIds: [ ...avatarIds ] };
+	return { parts, auxiliary, particles, defaultWear, avatarIds: [ ...avatarIds ], degraded: [ ...mismatched ] };
 }

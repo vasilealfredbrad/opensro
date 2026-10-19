@@ -1,0 +1,296 @@
+{
+	"format": "opensro-devil-spirit-v1",
+	"note": "Port-only, not native. The Devil's Spirit (iSRO NASRUN) rows the v1.150 data does not have, mapped onto the v1.150 avatar attachment, with the later client's awakening tables (_RefAbilityByItemOptLevel / _RefMagicOptByItemOptLevel / _RefSkillByItemOptLevel: each row's HP %, MP %, block rate and skills per effective OptLevel 0..10), its MATTR_NASRUN_* magic option rows, the Awakening Enhancement Scroll's AVATAR_SPECIAL_OPTLV_RATIO table and its scroll and extension items. Read by the server (devilspirit.go) and the asset build (scripts/build/char/devilSpirit.mjs); scripts/test/assets/devilSpirit.test.mjs checks every value against the owner's import. Ids and codenames are the later client's; models and icons come from the owner's import (SRO_IMPORT_ROOT), never from this repository.",
+	"nativeType": [3, 1, 14, 1],
+	"portType": [3, 1, 13, 3],
+	"templates": {
+		"M": "ITEM_MALL_AVATAR_M_HALLOWEEN_ATTACH",
+		"W": "ITEM_MALL_AVATAR_W_HALLOWEEN_ATTACH"
+	},
+	"etcTemplate": "ITEM_MALL_EQUIP_TRANSGENDER_4",
+	"magicOptions": [
+		{ "id": 353, "codename": "MATTR_NASRUN_UMDU", "tag": "umdu", "rangeWords": [131076, 393224, 655360] },
+		{ "id": 354, "codename": "MATTR_NASRUN_HPNA", "tag": "hpna", "rangeWords": [6, 1, 100] },
+		{ "id": 355, "codename": "MATTR_NASRUN_MPNA", "tag": "mpna", "rangeWords": [6, 1, 100] },
+		{ "id": 356, "codename": "MATTR_NASRUN_BLOCKRATE", "tag": "brna", "rangeWords": [65538, 196612, 0] }
+	],
+	"upgradeRatios": [10, 15, 15, 15, 15, 15, 5, 4, 3, 2, 1],
+	"awakeSeconds": 2419200,
+	"etc": [
+		{
+			"id": 39738,
+			"codename": "ITEM_ETC_NASRUN_UPGRADE_SCROLL",
+			"kind": "upgrade",
+			"name": "Awakening Enhancement Scroll",
+			"description": "Awakening Item enhancement level increases at random for 3 hours. Drag the scroll onto the Awakening Item in the inventory: the scroll disappears and the enhancement level of the Awakening Item is increased randomly between 1 and 10. Cannot be used while the item is equipped.",
+			"icon": "item\\etc\\nasrun_up_scroll.ddj",
+			"seconds": 10800
+		},
+		{
+			"id": 24395,
+			"codename": "ITEM_MALL_NASRUN_EXTENSION",
+			"kind": "extension",
+			"name": "Extension gear",
+			"description": "Extension gear will extend the awaken time period of Devil's Spirit for 4 weeks. Drag it onto the Devil's Spirit in the inventory.",
+			"icon": "item\\etc\\mall_nasrun_extension.ddj",
+			"seconds": 2419200
+		}
+	],
+	"items": [
+		{
+			"id": 24385,
+			"codename": "ITEM_MALL_AVATAR_M_NASRUN",
+			"sex": "M",
+			"grade": "red",
+			"name": "Crimson Devil's Spirit A grade (M)",
+			"icon": "item\\avatar\\mall_avatar_m_nasrun.ddj",
+			"models": ["res/item/avatar/avatar_m_nasrun.bsr", "res/item/avatar/avatar_m_nasrun_hat.bsr", "res/item/avatar/avatar_m_nasrun_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31146] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31146] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31146] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31148, 31150] }
+			]
+		},
+		{
+			"id": 24386,
+			"codename": "ITEM_MALL_AVATAR_W_NASRUN",
+			"sex": "W",
+			"grade": "red",
+			"name": "Crimson Devil's Spirit A grade (F)",
+			"icon": "item\\avatar\\mall_avatar_w_nasrun.ddj",
+			"models": ["res/item/avatar/avatar_w_nasrun.bsr", "res/item/avatar/avatar_w_nasrun_hat.bsr", "res/item/avatar/avatar_w_nasrun_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31146] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31146] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31146] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31147, 31149] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31148, 31150] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31148, 31150] }
+			]
+		},
+		{
+			"id": 24387,
+			"codename": "ITEM_MALL_AVATAR_M_NASRUN_YELLOW",
+			"sex": "M",
+			"grade": "yellow",
+			"name": "Golden Devil's Spirit A grade (M)",
+			"icon": "item\\avatar\\mall_avatar_m_nasrun_yellow.ddj",
+			"models": ["res/item/avatar/avatar_m_nasrun_yellow.bsr", "res/item/avatar/avatar_m_nasrun_hat.bsr", "res/item/avatar/avatar_m_nasrun_yellow_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31151] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31151] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31151] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31150, 31153] }
+			]
+		},
+		{
+			"id": 24388,
+			"codename": "ITEM_MALL_AVATAR_W_NASRUN_YELLOW",
+			"sex": "W",
+			"grade": "yellow",
+			"name": "Golden Devil's Spirit A grade (F)",
+			"icon": "item\\avatar\\mall_avatar_w_nasrun_yellow.ddj",
+			"models": ["res/item/avatar/avatar_w_nasrun_yellow.bsr", "res/item/avatar/avatar_w_nasrun_hat.bsr", "res/item/avatar/avatar_w_nasrun_yellow_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31151] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31151] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31151] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31149, 31152] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31150, 31153] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31150, 31153] }
+			]
+		},
+		{
+			"id": 24389,
+			"codename": "ITEM_MALL_AVATAR_M_NASRUN_BLUE",
+			"sex": "M",
+			"grade": "blue",
+			"name": "Blue Devil's Spirit A grade (M)",
+			"icon": "item\\avatar\\mall_avatar_m_nasrun_blue.ddj",
+			"models": ["res/item/avatar/avatar_m_nasrun_blue.bsr", "res/item/avatar/avatar_m_nasrun_hat.bsr", "res/item/avatar/avatar_m_nasrun_blue_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31154] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31154] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31154] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31150, 31156] }
+			]
+		},
+		{
+			"id": 24390,
+			"codename": "ITEM_MALL_AVATAR_W_NASRUN_BLUE",
+			"sex": "W",
+			"grade": "blue",
+			"name": "Blue Devil's Spirit A grade (F)",
+			"icon": "item\\avatar\\mall_avatar_w_nasrun_blue.ddj",
+			"models": ["res/item/avatar/avatar_w_nasrun_blue.bsr", "res/item/avatar/avatar_w_nasrun_hat.bsr", "res/item/avatar/avatar_w_nasrun_blue_2.bsr"],
+			"levels": [
+				{ "hp": 15, "mp": 15, "block": 0, "skills": [31154] },
+				{ "hp": 16, "mp": 16, "block": 0, "skills": [31154] },
+				{ "hp": 17, "mp": 17, "block": 0, "skills": [31154] },
+				{ "hp": 18, "mp": 18, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 19, "mp": 19, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31149, 31155] },
+				{ "hp": 21, "mp": 21, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 22, "mp": 22, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31150, 31156] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31150, 31156] }
+			]
+		},
+		{
+			"id": 24391,
+			"codename": "ITEM_MALL_AVATAR_M_NASRUN_UNIQUE",
+			"sex": "M",
+			"grade": "unique",
+			"name": "Devil's Spirit S grade (M)",
+			"icon": "item\\avatar\\mall_avatar_m_nasrun.ddj",
+			"models": ["res/item/avatar/avatar_m_nasrun.bsr", "res/item/avatar/avatar_m_nasrun_hat.bsr", "res/item/avatar/avatar_m_nasrun_3.bsr"],
+			"levels": [
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31146] },
+				{ "hp": 21, "mp": 21, "block": 1, "skills": [31146] },
+				{ "hp": 22, "mp": 22, "block": 1, "skills": [31146] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 26, "mp": 26, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 27, "mp": 27, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 28, "mp": 28, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 29, "mp": 29, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 30, "mp": 30, "block": 3, "skills": [31148, 31150] }
+			]
+		},
+		{
+			"id": 24392,
+			"codename": "ITEM_MALL_AVATAR_W_NASRUN_UNIQUE",
+			"sex": "W",
+			"grade": "unique",
+			"name": "Devil's Spirit S grade (F)",
+			"icon": "item\\avatar\\mall_avatar_w_nasrun.ddj",
+			"models": ["res/item/avatar/avatar_w_nasrun.bsr", "res/item/avatar/avatar_w_nasrun_hat.bsr", "res/item/avatar/avatar_w_nasrun_3.bsr"],
+			"levels": [
+				{ "hp": 20, "mp": 20, "block": 1, "skills": [31146] },
+				{ "hp": 21, "mp": 21, "block": 1, "skills": [31146] },
+				{ "hp": 22, "mp": 22, "block": 1, "skills": [31146] },
+				{ "hp": 23, "mp": 23, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 24, "mp": 24, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 25, "mp": 25, "block": 2, "skills": [31147, 31149] },
+				{ "hp": 26, "mp": 26, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 27, "mp": 27, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 28, "mp": 28, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 29, "mp": 29, "block": 3, "skills": [31148, 31150] },
+				{ "hp": 30, "mp": 30, "block": 3, "skills": [31148, 31150] }
+			]
+		}
+	],
+	"skills": [
+		{
+			"id": 31146,
+			"codename": "SKILL_MALL_NASRUN_ECCENTRICDEMON_01",
+			"name": "Malicious Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31146", "2": "884", "3": "SKILL_MALL_NASRUN_ECCENTRICDEMON_01", "5": "SKILL_MALL_NASRUN_ECCENTRICDEMON", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_eccentricdemon.ddj", "62": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "20", "73": "20", "74": "1752396851", "75": "10", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31147,
+			"codename": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_01",
+			"name": "Wicked Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31147", "2": "885", "3": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_01", "5": "SKILL_MALL_NASRUN_THEDEVILCONFUSION", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_thedevilconfusion.ddj", "62": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "25", "73": "25", "74": "1752396851", "75": "15", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31148,
+			"codename": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_01",
+			"name": "Vallainous Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31148", "2": "886", "3": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_01", "5": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_destroythedevil.ddj", "62": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "30", "73": "30", "74": "1752396851", "75": "20", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31149,
+			"codename": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_01",
+			"name": "Ignore Monster's defense",
+			"description": "able to ignore monster's defense",
+			"columns": { "0": "1", "1": "31149", "2": "887", "3": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_01", "5": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE", "7": "1", "8": "1", "14": "1200000", "18": "-872415232", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "60": "1", "61": "skill\\etc\\mall_nasrun_mobdeffenceignore01.ddj", "62": "SN_SKILL_MALL_NASRUN_MOBDEFENCEIGNORE", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "300000", "71": "1836280164", "72": "1", "73": "1919250793", "74": "14", "75": "1" }
+		},
+		{
+			"id": 31150,
+			"codename": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_02",
+			"name": "Ignore Monster's defense",
+			"description": "able to ignore monster's defense",
+			"columns": { "0": "1", "1": "31150", "2": "887", "3": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_02", "5": "SKILL_MALL_NASRUN_MOBDEFENCEIGNORE", "7": "2", "8": "1", "14": "1200000", "18": "-872415232", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "60": "1", "61": "skill\\etc\\mall_nasrun_mobdeffenceignore02.ddj", "62": "SN_SKILL_MALL_NASRUN_MOBDEFENCEIGNORE", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_MOBDEFENCEIGNORE_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "300000", "71": "1836280164", "72": "2", "73": "1919250793", "74": "14", "75": "1" }
+		},
+		{
+			"id": 31151,
+			"codename": "SKILL_MALL_NASRUN_ECCENTRICDEMON_YELLOW_01",
+			"name": "Malicious Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31151", "2": "884", "3": "SKILL_MALL_NASRUN_ECCENTRICDEMON_YELLOW_01", "5": "SKILL_MALL_NASRUN_ECCENTRICDEMON", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_eccentricdemon.ddj", "62": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "20", "73": "20", "74": "1752396851", "75": "10", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31152,
+			"codename": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_YELLOW_01",
+			"name": "Wicked Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31152", "2": "885", "3": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_YELLOW_01", "5": "SKILL_MALL_NASRUN_THEDEVILCONFUSION", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_thedevilconfusion.ddj", "62": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "25", "73": "25", "74": "1752396851", "75": "15", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31153,
+			"codename": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_YELLOW_01",
+			"name": "Vallainous Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31153", "2": "886", "3": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_YELLOW_01", "5": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_destroythedevil.ddj", "62": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "30", "73": "30", "74": "1752396851", "75": "20", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31154,
+			"codename": "SKILL_MALL_NASRUN_ECCENTRICDEMON_BLUE_01",
+			"name": "Malicious Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31154", "2": "884", "3": "SKILL_MALL_NASRUN_ECCENTRICDEMON_BLUE_01", "5": "SKILL_MALL_NASRUN_ECCENTRICDEMON", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_eccentricdemon.ddj", "62": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_ECCENTRICDEMON_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "20", "73": "20", "74": "1752396851", "75": "10", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31155,
+			"codename": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_BLUE_01",
+			"name": "Wicked Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31155", "2": "885", "3": "SKILL_MALL_NASRUN_THEDEVILCONFUSION_BLUE_01", "5": "SKILL_MALL_NASRUN_THEDEVILCONFUSION", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_thedevilconfusion.ddj", "62": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_THEDEVILCONFUSION_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "25", "73": "25", "74": "1752396851", "75": "15", "76": "1919250793", "77": "14", "78": "1" }
+		},
+		{
+			"id": 31156,
+			"codename": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_BLUE_01",
+			"name": "Vallainous Devil Skill",
+			"description": "Able to use Devil's power for limited time.",
+			"columns": { "0": "1", "1": "31156", "2": "886", "3": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL_BLUE_01", "5": "SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "7": "1", "8": "2", "11": "166", "12": "1", "13": "800", "14": "1800000", "18": "1795162206", "34": "1", "47": "3", "50": "255", "51": "255", "57": "255", "58": "255", "59": "255", "61": "skill\\etc\\mall_nasrun_destroythedevil.ddj", "62": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL", "63": "xxx", "64": "SN_SKILL_MALL_NASRUN_DESTROYTHEDEVIL_TT_DESC", "65": "xxx", "68": "3", "69": "1685418593", "70": "600000", "71": "6582901", "72": "30", "73": "30", "74": "1752396851", "75": "20", "76": "1919250793", "77": "14", "78": "1" }
+		}
+	]
+}

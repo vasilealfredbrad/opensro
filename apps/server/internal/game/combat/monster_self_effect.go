@@ -26,13 +26,59 @@ for frostbite's 8C). Curse factors B2..B5 come from the block alone.
 ==================
 */
 func MonsterInstanceStats(instance monster.Instance) (Stats, error) {
-	s, err := MonsterStats(instance.Ref)
+	s, err := monsterInstanceStats(instance)
+	if err != nil || instance.PortCombat == nil {
+		return s, err
+	}
+	// Port-only, not native (monster.PortCombat, the battle royale bots):
+	// the bot's level scales the hits it takes and deals, as one more lane
+	// factor after the native ones.
+	s.PhysicalIncoming = scaleLaneFactor(s.PhysicalIncoming, instance.PortCombat.DamageTaken)
+	s.MagicalIncoming = scaleLaneFactor(s.MagicalIncoming, instance.PortCombat.DamageTaken)
+	s.PhysicalOutgoing = scaleLaneFactor(s.PhysicalOutgoing, instance.PortCombat.DamageDealt)
+	s.MagicalOutgoing = scaleLaneFactor(s.MagicalOutgoing, instance.PortCombat.DamageDealt)
+	return s, nil
+}
+
+/*
+==================
+scaleLaneFactor
+
+A lane factor times scale, where 0 on either side means "no factor"
+(the native sentinel of Stats' B2..B5 lanes).
+==================
+*/
+func scaleLaneFactor(factor, scale float32) float32 {
+	switch {
+	case scale == 0:
+		return factor
+	case factor == 0:
+		return scale
+	}
+	return factor * scale
+}
+
+/*
+==================
+monsterInstanceStats
+
+The native projection; a port combat reference (monster.PortCombat)
+stands in for the visible one.
+==================
+*/
+func monsterInstanceStats(instance monster.Instance) (Stats, error) {
+	ref := instance.Ref
+	if instance.PortCombat != nil {
+		ref = instance.PortCombat.Ref
+	}
+	s, err := MonsterStats(ref)
 	if err != nil {
 		return s, err
 	}
 	// +0xD34 is the published abnormal mask (4A8575). atca at 58F52F tests it
 	// on the target (esi), which this projection is when the instance is the defender.
 	s.AbnormalMask = instance.AbnormalMask()
+	s.Rarity = instance.Rarity()
 	if err = applyMonsterSelfEffects(&s, instance.SelfEffects, instance.TargetEffects, instance.Abnormal); err != nil {
 		return Stats{}, err
 	}

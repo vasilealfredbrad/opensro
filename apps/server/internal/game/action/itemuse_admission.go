@@ -10,9 +10,10 @@ package action
 
 import (
 	"math"
-	"opensro.online/server/internal/game/item/wire"
 
 	"opensro.online/server/internal/game/enterworld"
+	"opensro.online/server/internal/game/item/devilspirit"
+	"opensro.online/server/internal/game/item/wire"
 )
 
 /*
@@ -58,6 +59,8 @@ const (
 	itemUseGlobalChat
 	itemUseStallDecoration
 	itemUseReverseReturn
+	itemUseDevilSpiritUpgrade
+	itemUseDevilSpiritExtension
 )
 
 /*
@@ -71,6 +74,15 @@ active native handler before inventory consumption can be authorized.
 func admittedItemUseFamily(ref *enterworld.ItemRef) itemUseFamily {
 	if ref == nil {
 		return itemUseUnsupported
+	}
+	// Port-only, not native: the Devil's Spirit's scroll and extension
+	// rows (game/item/devilspirit) are clones of the gender tool's
+	// 3/3/13/8 row, so they are told apart by id before its TID arm.
+	if devilspirit.IsUpgradeScroll(ref.RefObjID) {
+		return itemUseDevilSpiritUpgrade
+	}
+	if devilspirit.IsExtension(ref.RefObjID) {
+		return itemUseDevilSpiritExtension
 	}
 	if ref.TypeIDs == [4]int64{3, 3, 12, 1} {
 		return itemUseMercenary

@@ -13,6 +13,7 @@ package action
 
 import (
 	"math"
+	"opensro.online/server/internal/game/battleroyale"
 	"strings"
 
 	"opensro.online/server/internal/domain"
@@ -76,6 +77,10 @@ record and 4E8FC0 toggles the existing actor. Family admission is 4FCEF0.
 func (rt *Runtime) usePersistentSummoner(use persistentSummonUse, result *OpResult) bool {
 	c, row := use.character, &use.character.MissionInventory[use.row]
 	if row.StackCount != 1 || rt.PlayerAttackLocked(use.division, c.Name) || rt.objectActionCommitted(use.division, c.Name) {
+		return false
+	}
+	// Port-only: no companion comes out in a battle royale match.
+	if battleroyale.Held(c) {
 		return false
 	}
 	// 493140..49314C: only teleport mode 1 refuses. A free countdown (mode 2,

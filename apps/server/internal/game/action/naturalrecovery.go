@@ -49,11 +49,15 @@ Replacement sessions start fresh clocks; repeat admission preserves phase.
 ================
 */
 type recoverySession struct {
-	session                    uint64
-	character                  *enterworld.Character
-	nextMs                     int64
-	questNextMs                int64
-	questItemNextMs            int64
+	session         uint64
+	character       *enterworld.Character
+	nextMs          int64
+	questNextMs     int64
+	questItemNextMs int64
+	// devilSpiritNextMs is the port-only Devil's Spirit sweep's next second
+	// (devilspirit.go); the first pulse runs at admission, so a login
+	// brings a stale instance up to date at once.
+	devilSpiritNextMs          int64
 	potions                    recovery.Queue
 	potionNextMs, potionLastMs int64
 }
@@ -71,6 +75,21 @@ func (rt *Runtime) BindRecoverySession(division string, c *enterworld.Character,
 	}
 	unlock := rt.lockDivision(division)
 	defer unlock()
+	rt.bindRecoverySessionLocked(division, c, session)
+}
+
+/*
+================
+bindRecoverySessionLocked
+
+BindRecoverySession for a caller that holds the division lock (a battle
+royale bot standing up, port-only).
+================
+*/
+func (rt *Runtime) bindRecoverySessionLocked(division string, c *enterworld.Character, session uint64) {
+	if c == nil || session == 0 {
+		return
+	}
 	key := recoveryKey{division, strings.ToLower(c.Name)}
 	rt.recoveryMu.Lock()
 	defer rt.recoveryMu.Unlock()
@@ -84,6 +103,7 @@ func (rt *Runtime) BindRecoverySession(division string, c *enterworld.Character,
 	rt.recoverySessions[key] = &recoverySession{session: session, character: c, nextMs: now + naturalRecoveryIntervalMs, questNextMs: now + questMinuteIntervalMs}
 	rt.recoverySessions[key].questItemNextMs = now + questItemIntervalMs
 	rt.recoverySessions[key].potionNextMs = now + potionRecoveryIntervalMs
+	rt.recoverySessions[key].devilSpiritNextMs = now
 }
 
 /*
@@ -135,7 +155,7 @@ func (rt *Runtime) advanceNaturalRecovery(nowMs int64) []simulation.DivisionFram
 	var keys []recoveryKey
 	for key, state := range rt.recoverySessions {
 		if nowMs >= state.potionNextMs || nowMs >= state.nextMs || rt.AdvanceQuestMinute != nil && nowMs >= state.questNextMs ||
-			rt.AdvanceQuestItem != nil && nowMs >= state.questItemNextMs {
+			rt.AdvanceQuestItem != nil && nowMs >= state.questItemNextMs || nowMs >= state.devilSpiritNextMs {
 			keys = append(keys, key)
 		}
 	}
@@ -152,6 +172,7 @@ func (rt *Runtime) advanceNaturalRecovery(nowMs int64) []simulation.DivisionFram
 		out = append(out, rt.recoverPotionResident(key, nowMs)...)
 		out = append(out, rt.advanceResidentQuestItem(key, nowMs)...)
 		out = append(out, rt.advanceResidentQuestMinute(key, nowMs)...)
+		out = append(out, rt.advanceResidentDevilSpirit(key, nowMs)...)
 		frames := rt.recoverResident(key, nowMs)
 		out = append(out, frames...)
 		unlock()

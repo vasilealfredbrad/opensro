@@ -108,10 +108,21 @@ pieces: [{ part, itemBsrPath }]; returns a manifest entry { glb, parts, covers }
 or null when nothing was bindable. `tag` is the log prefix ("dress"/"weapon").
 write( diskPath, bytes, publicPath ) publishes the GLB (writeIntoPublicTreeSync
 by default); a caller that post-processes the bytes holds them instead.
+environment( modifiers, itemBsrPath, meshPath ) selects (or resolves) one
+mesh's environment modifiers (all of the piece's by default).
 ================
 */
 export async function buildItemSetGlb(
-	{ tag, key, donor, donorSkel, pieces, outSubdir, write = writeIntoPublicTreeSync }
+	{
+		tag,
+		key,
+		donor,
+		donorSkel,
+		pieces,
+		outSubdir,
+		write = writeIntoPublicTreeSync,
+		environment = modifiers => modifiers
+	}
 ) {
 	// Resolve every piece's item .bsr -> skinned mesh paths + material set + cover keys.
 	const meshPaths = [];
@@ -165,7 +176,10 @@ export async function buildItemSetGlb(
 		for ( const meshPath of itemBsr.meshPaths ) {
 			meshPaths.push( meshPath );
 			partByMesh.set( meshPath, part );
-			environmentByMesh.set( meshPath, itemBsr.modifiers?.environmentModifiers ?? [] );
+			environmentByMesh.set(
+				meshPath,
+				await environment( itemBsr.modifiers?.environmentModifiers ?? [], itemBsrPath, meshPath )
+			);
 			if ( itemSkelInfo ) itemSkelByMesh.set( meshPath, itemSkelInfo );
 			if ( attachBone ) attachByMesh.set( meshPath, attachBone );
 		}

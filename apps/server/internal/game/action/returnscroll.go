@@ -10,6 +10,7 @@ package action
 import (
 	"math"
 	"opensro.online/server/internal/domain"
+	"opensro.online/server/internal/game/battleroyale"
 
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/grounditem"
@@ -125,6 +126,11 @@ one leaves it. v1.188 error low bytes agree with v1.150 689420 category 1.
 ================
 */
 func (rt *Runtime) returnScrollAdmission(division string, c *enterworld.Character, result *OpResult) bool {
+	// Port-only: no return or reverse return out of a battle royale match.
+	if battleroyale.Held(c) {
+		*result = itemUseFailure(wire.ErrCodeInvalidRequest)
+		return false
+	}
 	if !rt.returnCastAdmission(division, c, result) {
 		return false
 	}

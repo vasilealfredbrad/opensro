@@ -121,6 +121,9 @@ func (t *Ticker) runPeerCOSVisibility(state *divisionTickState, nowMs int64, ses
 		state.shownCOS = make(map[string]map[uint32]shownCOS)
 	}
 	for _, viewer := range sessions {
+		if viewer.Headless {
+			continue
+		}
 		shown := state.shownCOS[viewer.SessionID]
 		if shown == nil {
 			shown = make(map[uint32]shownCOS)

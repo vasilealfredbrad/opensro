@@ -44,6 +44,7 @@ import (
 	"opensro.online/server/internal/game/world/movement"
 	"opensro.online/server/internal/game/world/simulation"
 	"opensro.online/server/internal/game/world/worldarea"
+	"opensro.online/server/internal/platform/history"
 	"opensro.online/server/internal/transport"
 )
 
@@ -528,7 +529,7 @@ handlers. Progression callbacks operate on the caller's candidate and must
 never acquire another character transaction.
 ================
 */
-func (game *gameplayPlane) register(hub *transport.Hub, loadQuests questDefinitionLoader) error {
+func (game *gameplayPlane) register(hub *transport.Hub, loadQuests questDefinitionLoader, journal *history.Journal) error {
 	if err := game.deps.Validate(); err != nil {
 		return fmt.Errorf("bootstrap dependencies: %w", err)
 	}
@@ -651,6 +652,11 @@ func (game *gameplayPlane) register(hub *transport.Hub, loadQuests questDefiniti
 	if banditCap > 0 {
 		log.Infof("caravan: at most %d bandits per ambush (%s)", banditCap, caravan.EnvBanditCap)
 	}
+	if err := game.wireChainLightning(); err != nil {
+		return err
+	}
+	// Port-only, not native: the battle royale mode (SRO_BATTLE_ROYALE).
+	game.wireBattleRoyale(journal)
 	game.items.CaravanStarAmbush = caravan.StarAmbushFromEnv()
 	if game.items.CaravanStarAmbush {
 		log.Infof("caravan: a fixed ambush per star replaces the rolled count (%s)", caravan.EnvStarAmbush)
@@ -798,6 +804,7 @@ func (game *gameplayPlane) register(hub *transport.Hub, loadQuests questDefiniti
 	}
 	game.items.UpdateExperience = stats.ExperienceUpdater()
 	game.items.RefundExperience = stats.ExperienceRefundUpdater()
+	game.items.CommitExperience = stats.ExactExperienceUpdater()
 	game.items.RecallStatPoints = stats.StatRecallUpdater()
 	game.items.ApplyDeathPenalty = stats.DeathPenaltyUpdater()
 	game.items.UpdateJobExperience = stats.JobExperienceUpdater()
@@ -823,10 +830,10 @@ func (game *gameplayPlane) register(hub *transport.Hub, loadQuests questDefiniti
 	}
 	game.items.PushDivisionPeerFrames = func(divisionID, exceptCharacterName string, frames []wire.Frame) {
 		if exceptCharacterName != "" {
-			// A character without a bound session is not in the world, so
-			// nobody can observe it and its frames have no audience.
+			// Without a bound session only a battle royale bot has an audience.
 			sources := hub.CharacterSessions(divisionID, exceptCharacterName)
 			if len(sources) == 0 {
+				game.pushBattleRoyaleBotPeerFrames(divisionID, exceptCharacterName, frames)
 				return
 			}
 			if sourceGID, ok := sources[0].CharacterObjectID(); ok {

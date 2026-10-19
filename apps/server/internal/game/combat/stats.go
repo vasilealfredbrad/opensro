@@ -58,7 +58,11 @@ type Stats struct {
 	DamageReturnSkill uint32
 	// graph is the player's evaluated keeper; nil for monster snapshots. It is
 	// built once per snapshot and never mutated afterwards.
-	graph    *paramkeeper.Graph
+	graph *paramkeeper.Graph
+	// Monster marks a monster snapshot and Rarity is its spawn rarity byte
+	// (monster.Instance.Rarity); both are zero for a player.
+	Monster  bool
+	Rarity   uint8
 	Level    uint8
 	MaxLevel uint8
 
@@ -462,6 +466,8 @@ func MonsterStats(ref monster.MonsterRef) (Stats, error) {
 		)
 	}
 	return Stats{
+		Monster:         true,
+		Rarity:          ref.MonsterType & 0x0f,
 		Level:           ref.Level,
 		MaxLevel:        ref.Level,
 		PhysicalDefense: ref.PhysicalDefense,

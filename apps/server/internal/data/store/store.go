@@ -209,8 +209,11 @@ type Store struct {
 	campMembers map[string]map[int64][]domain.TrainingCampMemberRecord
 
 	charDivision map[*domain.Character]string
-	changes      changeSet
-	ground       groundState
+	// ephemeral holds the live records that are never persisted (the
+	// battle royale bots, ephemeral.go), each with its division.
+	ephemeral map[*domain.Character]string
+	changes   changeSet
+	ground    groundState
 	// batch is the simulation tick's deferred commit (tickbatch.go).
 	batch tickBatch
 	// ledger attributes every committed gold change (economy_ledger.go).

@@ -29,6 +29,7 @@ import { readPublishedAssetBytesSync } from "../../lib/publishedAsset.mjs";
 import { publishBytesAtomically } from "../shared/atomicPublish.mjs";
 import { writeIntoPublicTreeSync } from "../shared/publicWrite.mjs";
 import { MOONLIT_MESHES, moonlitGlb, moonlitModelPath } from "./moonlitThiefSuit.mjs";
+import { publishDevilSpiritEquipment } from "./devilSpirit.mjs";
 
 // The equipment slots equipmentGlowModelIds reads glows for.
 const GLOW_SLOT_WEAPON = 6;
@@ -223,6 +224,8 @@ export async function buildEquipmentVisuals( dress ) {
 		);
 	}
 	await publishMoonlitVariants( out );
+	// Port-only, not native: the Devil's Spirit records (devilSpirit.mjs).
+	await publishDevilSpiritEquipment( out, { getDonor, overrides: dress.avatarVisualOverrides } );
 	const metadata = { ...dress, equipment: out };
 	await publishEquipmentParticleMetadata( metadata );
 	dress.specialGlows = metadata.specialGlows;

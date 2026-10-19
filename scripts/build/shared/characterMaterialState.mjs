@@ -1,15 +1,20 @@
 // v1.150 AAE3E0 plus CRTModEnvMap::Apply (AEE6D0). Coverage setup
 // precedes the modifier's active/reflection-quality/actor-opacity gates.
 import { characterEnvironment } from "./characterEnvironment.mjs";
+
+// An always-on, whole-resource environment modifier: the only coverage the
+// build bakes. Animated or material-scoped coverage needs runtime ownership.
+export function staticEnvironmentModifier( modifier ) {
+	return modifier.kind === 2 && modifier.stateId === -1 && modifier.baseWords[1] === 1 &&
+		modifier.baseWords[3] === 0xffffffff;
+}
+
 export function characterMaterialState( flags, environmentModifiers = [] ) {
 	let alphaCutoff = (flags & 0x200) && !(flags & 0x30000000) ? 128 / 255 : 0;
 	let fadeAlphaOnly = !!(flags & 0x40000000);
 	if ( !(flags & 0x10000) ) {
 		for ( const modifier of environmentModifiers ) {
-			if (
-				modifier.kind !== 2 || modifier.stateId !== -1 || modifier.baseWords[1] !== 1 ||
-				modifier.baseWords[3] !== 0xffffffff
-			) {
+			if ( !staticEnvironmentModifier( modifier ) ) {
 				throw Error( "Animated or material-scoped environment coverage needs runtime ownership" );
 			}
 			alphaCutoff = modifier.baseWords[5] & 2 ? 1 / 255 : 0;

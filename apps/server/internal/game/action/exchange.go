@@ -32,6 +32,7 @@ package action
 import (
 	"bytes"
 	"errors"
+	"opensro.online/server/internal/game/battleroyale"
 
 	log "github.com/sirupsen/logrus"
 	"opensro.online/server/internal/game/enterworld"
@@ -70,6 +71,10 @@ func (rt *Runtime) HandleExchangeRequest(division string, c *enterworld.Characte
 	}
 	target := rt.findCharacterByGid(division, gid)
 	if target == nil || target.ID == c.ID || target.DeletePending {
+		return refuse(wire.ExchangeErrInvalidTarget)
+	}
+	// Port-only: no exchange with or by a battle royale match character.
+	if battleroyale.Held(c) || battleroyale.Held(target) {
 		return refuse(wire.ExchangeErrInvalidTarget)
 	}
 	nowMs := rt.Now().UnixMilli()

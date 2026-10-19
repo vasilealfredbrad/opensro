@@ -213,6 +213,11 @@ func (s *Store) mutateCharacterLocked(c *domain.Character, label string, fn func
 	if fn != nil {
 		fn()
 	}
+	if s.ephemeralDoorLocked([]*domain.Character{c}) {
+		// A live record the store never persists (ephemeral.go).
+		s.finishEphemeralDoorLocked(label, deferred)
+		return
+	}
 	if c != nil {
 		if _, known := s.charDivision[c]; known {
 			s.changes.characters[c] = true
@@ -255,6 +260,14 @@ updateCharacterLocked
 func (s *Store) updateCharacterLocked(c *domain.Character, label string, update func() bool, deferred bool) bool {
 	if c == nil || update == nil {
 		return false
+	}
+	if s.ephemeralLocked(c) {
+		// A live record the store never persists (ephemeral.go).
+		if !update() {
+			return false
+		}
+		s.finishEphemeralDoorLocked(label, deferred)
+		return true
 	}
 	if _, known := s.charDivision[c]; !known {
 		log.Warnf("store: UpdateCharacter(%q) refused an unknown character record %q", label, c.Name)
@@ -309,8 +322,12 @@ func (s *Store) mutateCharactersLocked(cs []*domain.Character, label string, fn 
 	if fn != nil {
 		fn()
 	}
+	if s.ephemeralDoorLocked(cs) {
+		s.finishEphemeralDoorLocked(label, deferred)
+		return
+	}
 	for _, c := range cs {
-		if c == nil {
+		if c == nil || s.ephemeralLocked(c) {
 			continue
 		}
 		if _, known := s.charDivision[c]; known {
@@ -354,7 +371,7 @@ func (s *Store) updateCharactersLocked(cs []*domain.Character, label string, upd
 		if character == nil {
 			return false
 		}
-		if _, known := s.charDivision[character]; !known {
+		if _, known := s.charDivision[character]; !known && !s.ephemeralLocked(character) {
 			log.Warnf("store: UpdateCharacters(%q) refused an unknown character record %q", label, character.Name)
 			return false
 		}
@@ -362,8 +379,15 @@ func (s *Store) updateCharactersLocked(cs []*domain.Character, label string, upd
 	if !update() {
 		return false
 	}
+	if s.ephemeralDoorLocked(cs) {
+		// Only live records the store never persists (ephemeral.go).
+		s.finishEphemeralDoorLocked(label, deferred)
+		return true
+	}
 	for _, character := range cs {
-		s.changes.characters[character] = true
+		if !s.ephemeralLocked(character) {
+			s.changes.characters[character] = true
+		}
 	}
 	s.finishDoorLocked(label, deferred, cs)
 	return true

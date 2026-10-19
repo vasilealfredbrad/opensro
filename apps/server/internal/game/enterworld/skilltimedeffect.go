@@ -859,14 +859,22 @@ func parseSkillTimedEffect(fields []string, row *SkillRow) {
 		return
 	}
 	partySelection := result.Area.Select == SelectParty || result.Area.Select == SelectParty|SelectCaster
-	if movement && (targeted || result.Field.Present || !result.Area.Present || !partySelection || result.Persistent || result.Link.Present || row.EffectDurationMs == 0) ||
+	// Port-only, not native: a later client's self buff (the Devil's
+	// Spirit's devil skills, game/item/devilspirit) joins a movement block
+	// to a damage rate on its caster alone, the pair an item program
+	// (compileTimedItemEffect, the fortress commander) already installs
+	// together. No v1.150 row is port-only, so the native refusal stands.
+	selfMovement := row.PortOnly && movement && !targeted && !result.Area.Present && !result.Field.Present &&
+		!result.Persistent && !result.Link.Present && row.EffectDurationMs != 0 &&
+		(len(attributeTags) == 0 || len(attributeTags) == 1 && result.Attributes.DamageRate)
+	if movement && !selfMovement && (targeted || result.Field.Present || !result.Area.Present || !partySelection || result.Persistent || result.Link.Present || row.EffectDurationMs == 0) ||
 		musicParameters && !movement && !result.Preemptive.Present && !result.Link.Mana {
 		return
 	}
 	result.Defense = defense
 	attributes := result.Attributes.MaxHP || result.Attributes.Attack || result.Attributes.DamagePenalty ||
 		result.Attributes.DamageRate || result.Attributes.MaxHPPenalty || result.Attributes.DefensePenalty
-	if len(attributeTags) != 0 && (!attributes || result.Persistent || result.Link.Present || movement || defense ||
+	if len(attributeTags) != 0 && (!attributes || result.Persistent || result.Link.Present || movement && !selfMovement || defense ||
 		result.Block.Present || result.Strength.Present || result.Intellect.Present || row.EffectDurationMs == 0) {
 		return
 	}

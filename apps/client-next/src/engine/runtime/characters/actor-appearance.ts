@@ -13,12 +13,17 @@ the per-actor loop: a loop `continue` is `return null` here.
 import { fortressAppearance } from "@/engine/foundation/animation/fortress-appearance";
 import { defaultWearFrozen } from "@/engine/foundation/animation/default-wear-policy";
 import { assembleEquipmentAppearance } from "@/engine/foundation/animation/equipment-appearance";
+import { devilBuffSkill, devilSpiritAvatars } from "@/engine/foundation/gameplay/devil-spirit";
 import type { ModelParticle } from "@/engine/foundation/animation/model-particles";
 import { groundVisualClock, advanceGroundVisual } from "@/engine/foundation/animation/ground-visual";
 import { referenceAppearanceItems } from "@/engine/foundation/animation/reference-appearance";
 import { characterHeadingYaw } from "@/engine/foundation/math/angles";
 import type { EntityState } from "@/engine/contracts/world";
 import type { ActorAppearance, ActorFrame, ActorOwner, ActorPass, Auxiliary } from "./internal/presentation-contract";
+
+// The degraded site code of a worn item drawn as nothing because it is
+// published for another body (equipment-appearance.ts lenientBodies).
+const EQUIPMENT_BODY_MISMATCH = "equipment-visual-body-mismatch";
 
 /*
 ================
@@ -50,13 +55,15 @@ export function createActorAppearance( owner: ActorOwner ) {
 	================
 	avatarSignature
 
-	The avatar item ids, built like wornSignature.
+	The avatar item ids, built like wornSignature, each with the devil form
+	it wears (port-only, devil-spirit.ts devilSpiritAvatars).
 	================
 	*/
-	function avatarSignature( avatars: readonly { refObjId: number; }[] ) {
+	function avatarSignature( avatars: readonly { refObjId: number; look?: number; }[] ) {
 		let text = "";
 		for ( let index = 0; index < avatars.length; index++ ) {
-			text += (index ? ";" : "") + avatars[index]!.refObjId;
+			const avatar = avatars[index]!;
+			text += (index ? ";" : "") + avatar.refObjId + (avatar.look === undefined ? "" : "@" + avatar.look);
 		}
 		return text;
 	}
@@ -207,7 +214,15 @@ export function createActorAppearance( owner: ActorOwner ) {
 			};
 			try {
 				const disguise = referenceAppearances.get( entity.gid );
-				const skin = activeSkin( entity ), avatars = skin ? [] : entity.avatars ?? [];
+				// Port-only: a Devil's Spirit shows the devil form of the devil buff
+				// running on its wearer (devil-spirit.ts).
+				const skin = activeSkin( entity ),
+					avatars = skin ?
+						[] :
+						devilSpiritAvatars(
+							entity.avatars ?? [],
+							devilBuffSkill( entity.gid, gameplay?.attachedEffects )
+						);
 				if ( skin && !skin.player ) {
 					// 85C060: a monster skin is its own body; the wearer's items are set aside.
 				} else if ( disguise ) {
@@ -304,9 +319,21 @@ export function createActorAppearance( owner: ActorOwner ) {
 							freezeWear,
 							enchantSparks,
 							jobSuitHidesArmor,
-							moonlitThiefSuit
+							moonlitThiefSuit,
+							lenientBodies: true
 						} );
 						const { parts, auxiliary, defaultWear } = assembly;
+						// A worn item published for another body (a race swapped in
+						// place) draws nothing until the converted equipment arrives;
+						// the next equipment change assembles again.
+						if ( assembly.degraded.length ) {
+							resources.degrade( {
+								code: EQUIPMENT_BODY_MISMATCH,
+								message: `Equipment visual body mismatch ${
+									assembly.degraded.join( "," )
+								}: ${resource.codename}`
+							} );
+						}
 						const particles: ModelParticle[] = [
 							...(resource.ambientParticles ?? []),
 							...assembly.particles

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"opensro.online/server/internal/domain"
+	"opensro.online/server/internal/game/battleroyale"
 	"opensro.online/server/internal/game/item/commerce"
 	"path/filepath"
 	"strconv"
@@ -350,6 +351,11 @@ OpResult
 */
 func (rt *Runtime) HandlePortal(division string, c *enterworld.Character, payload []byte) OpResult {
 	if c == nil {
+		return portalFailure(2)
+	}
+	// Port-only: a battle royale match character takes no gate or flyship;
+	// walking out of the arena is its only exit (docs/battle-royale.md).
+	if battleroyale.Held(c) {
 		return portalFailure(2)
 	}
 	r := wire.NewReader(payload)

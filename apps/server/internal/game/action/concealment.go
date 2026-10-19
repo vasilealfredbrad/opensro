@@ -201,6 +201,9 @@ door.
 ================
 */
 func (rt *Runtime) startSkillCast(division string, c *enterworld.Character, skill enterworld.SkillRow, now int64) {
+	// Port-only, nil = native: a battle royale bot counts its casts
+	// (battleroyale_botwatch.go).
+	rt.noteBattleRoyaleBotCast(c, skill)
 	rt.haltCasterWalk(division, c, skill, now)
 	rt.retireEffectsOnEvent(division, c, effectEventSkillCast, now)
 }

@@ -258,6 +258,9 @@ export interface UiView {
 	readonly dropNamesHeld?: boolean;
 	readonly blindHeld?: boolean;
 	readonly simulationTimeMs?: number;
+	// Port-only: the orbit camera's yaw (input.ts camera), which the compass
+	// strip follows (compass-hud.ts); absent outside the world.
+	readonly cameraYaw?: number;
 	readonly hoveredEntity?: number | null;
 	readonly travel?: import("./world").WorldTravel | null;
 	readonly worldTransitionRegion?: number;

@@ -35,6 +35,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"opensro.online/server/internal/game/battleroyale"
 
 	log "github.com/sirupsen/logrus"
 	"opensro.online/server/internal/domain"
@@ -228,6 +229,10 @@ func (rt *Runtime) HandleStorageList(divisionID string, character *enterworld.Ch
 	}
 	unlock := rt.lockDivision(divisionID)
 	defer unlock()
+	// Port-only: a battle royale match character opens no warehouse.
+	if battleroyale.Held(character) {
+		return nil, "a battle royale match character opens no warehouse"
+	}
 	npc, ok := rt.storageNpc(divisionID, character, gid)
 	if !ok {
 		return nil, "the selected object is not a warehouse NPC"

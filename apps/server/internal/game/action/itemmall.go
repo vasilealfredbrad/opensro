@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"opensro.online/server/internal/domain"
+	"opensro.online/server/internal/game/battleroyale"
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/commerce"
 	"opensro.online/server/internal/game/item/grounditem"
@@ -118,6 +119,10 @@ callback. A failed debit or failed commit must never emit a success packet.
 func (rt *Runtime) HandleMallPurchase(division string, character *enterworld.Character, payload []byte) OpResult {
 	request, err := wire.DecodeMallPurchase(payload)
 	if err != nil || character == nil || rt.mallCatalog == nil || rt.mallAuthority == nil {
+		return failureResult(wire.ErrCodeInvalidRequest)
+	}
+	// Port-only: the item mall is closed to a battle royale match character.
+	if battleroyale.Held(character) {
 		return failureResult(wire.ErrCodeInvalidRequest)
 	}
 	unlock := rt.lockDivision(division)

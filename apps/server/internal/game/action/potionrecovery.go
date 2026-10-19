@@ -41,7 +41,7 @@ func (rt *Runtime) admitPotionRecovery(division string, c *enterworld.Character,
 	state := rt.recoverySessions[key]
 	if state == nil || state.character != c {
 		state = &recoverySession{character: c, nextMs: math.MaxInt64, questNextMs: math.MaxInt64,
-			questItemNextMs: math.MaxInt64, potionNextMs: now + potionRecoveryIntervalMs}
+			questItemNextMs: math.MaxInt64, devilSpiritNextMs: math.MaxInt64, potionNextMs: now + potionRecoveryIntervalMs}
 		if rt.recoverySessions == nil {
 			rt.recoverySessions = make(map[recoveryKey]*recoverySession)
 		}

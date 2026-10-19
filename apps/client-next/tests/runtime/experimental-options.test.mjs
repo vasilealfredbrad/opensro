@@ -61,7 +61,9 @@ const OFF = Object.freeze( {
 	// On by default (owner 2026-10-15): Withdraw asks before a guild ban.
 	confirmGuildBan: true,
 	// Off by default: straight projectiles keep their launch-captured endpoint (8D8580).
-	homingProjectiles: false
+	homingProjectiles: false,
+	// Off by default: the compass shows only in Battle Royale (the original has none).
+	compassEverywhere: false
 } );
 
 test("only an explicit boolean enables chat timestamps", () => {
@@ -463,4 +465,15 @@ test("homing projectiles default off (native captured endpoint) and reach the wo
 	assert.equal( on.homingProjectiles, true );
 	assert.equal( experimentalGameplay( on ).homingProjectiles, true );
 	assert.ok( EXPERIMENTAL_TABS.some( tab => tab.rows.some( row => row.key === "homingProjectiles" ) ) );
+});
+
+test("the compass shows everywhere only when explicitly enabled, and stays out of the renderer and worker slices", () => {
+	for ( const value of [ undefined, null, {}, { compassEverywhere: 1 }, { compassEverywhere: "true" } ] ) {
+		assert.equal( experimentalOptions( value ).compassEverywhere, false );
+	}
+	const on = experimentalOptions( { compassEverywhere: true } );
+	assert.equal( on.compassEverywhere, true );
+	assert.equal( "compassEverywhere" in experimentalVideo( on ), false );
+	assert.equal( "compassEverywhere" in experimentalGameplay( on ), false );
+	assert.ok( EXPERIMENTAL_TABS.some( tab => tab.rows.some( row => row.key === "compassEverywhere" ) ) );
 });

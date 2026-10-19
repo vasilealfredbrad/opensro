@@ -87,7 +87,9 @@ func (rt *Runtime) registerPlayerAttack(division string, caster, target *enterwo
 		}
 		return nil
 	}
-	if rt.hostilePlayerEquipment(caster, target) || rt.guildsAtWar(division, caster, target) || target.PVPState() == 2 {
+	// Port-only: battle royale opponents are legal targets too.
+	if rt.hostilePlayerEquipment(caster, target) || rt.guildsAtWar(division, caster, target) || target.PVPState() == 2 ||
+		battleRoyaleOpponents(caster, target) {
 		return nil
 	}
 	return rt.refreshPlayerAggression(division, caster, target, now)

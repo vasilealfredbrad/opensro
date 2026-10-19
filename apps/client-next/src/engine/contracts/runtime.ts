@@ -257,6 +257,12 @@ export interface Renderer extends Disposable {
 		value: { readonly pose: import("./gameplay").Pose; readonly slot: 0 | 1 | 2 | 3; } | null
 	): void;
 	setFootprints( value: readonly import("./footprint").Footprint[] ): void;
+	// Port-only, not native: the Battle Royale circles laid on the ground
+	// (ground-ring.ts); an empty list draws none.
+	setGroundRings?( value: readonly import("./ground-ring").GroundRing[] ): void;
+	// Port-only, not native: how far the scene's fog closes in (0 to 1) while
+	// the local player stands outside the Battle Royale zone.
+	setZoneFog?( value: number ): void;
 	pickGround( x: number, y: number ): import("./navigation").GroundPickQuery | null;
 	presentationCamera(): import("@/engine/foundation/animation/entity-lod").LodPoint | null;
 	audioListener(): import("./audio").SoundListener | null;

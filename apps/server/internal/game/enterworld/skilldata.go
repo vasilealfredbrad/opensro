@@ -10,6 +10,7 @@ package enterworld
 
 import (
 	"fmt"
+	"iter"
 	"opensro.online/server/internal/game/abnormal"
 	"opensro.online/server/internal/game/item/statuseffect"
 	"opensro.online/server/internal/game/world/monster"
@@ -130,6 +131,11 @@ SkillRow is one skilldata record's learn-plane fields.
 ================
 */
 type SkillRow struct {
+	// PortOnly marks a row the v1.150 shards do not have
+	// (AddPortOnlySkillRows): a later client's skill whose program shapes
+	// the native owners refuse may be admitted for it alone (port-only,
+	// not native; skilltimedeffect.go).
+	PortOnly bool
 	// AssistsCompanions: a cast of this skill sends the caster's attack pets
 	// onto its target (motion record +0xBD, skillassist.go).
 	AssistsCompanions bool
@@ -415,6 +421,12 @@ type SkillDataSource interface {
 	SkillByID(id uint32) (SkillRow, bool)
 }
 
+// SkillRowSource is the optional whole-catalogue walk a SkillDataSource
+// may offer (TextdataSkills does): every row by id.
+type SkillRowSource interface {
+	Rows() iter.Seq2[uint32, SkillRow]
+}
+
 // Column indices (0-based over the full 118-column row; see the header
 // comment for the parser-offset derivation and use-site pins).
 const (
@@ -502,6 +514,9 @@ type TextdataSkills struct {
 	// resident rows; UseBoundedCache drops it.
 	shared    *TextdataSkills
 	sharedKey string
+	// portOnly are rows the v1.150 shards do not have, parsed after them
+	// (AddPortOnlySkillRows, port-only, not native).
+	portOnly [][]string
 }
 
 // sharedSkillParses deduplicates identical skill projections per process.
@@ -544,6 +559,19 @@ func (t *TextdataSkills) SkillByID(id uint32) (SkillRow, bool) {
 	t.once.Do(t.load)
 	row, ok := t.rows.lookup(id)
 	return row, ok
+}
+
+/*
+================
+Rows
+
+Every skill row of the catalogue, by id, in storage order (SkillRowSource).
+Battle royale's automatic skill grant walks it once per level-up.
+================
+*/
+func (t *TextdataSkills) Rows() iter.Seq2[uint32, SkillRow] {
+	t.once.Do(t.load)
+	return t.rows.values()
 }
 
 /*
@@ -660,8 +688,14 @@ func (t *TextdataSkills) parse(shards []string) {
 	assistSets := skillAniSetAssists(t.dir)
 	recordSources := map[uint32]skillRecordSource{}
 
-	for _, shard := range shards {
-		for _, fields := range readTextdataFile(filepath.Join(t.dir, shard)) {
+	// The shards in index order, then the port-only rows (portOnly) as
+	// one more shard after them.
+	for shard := 0; shard <= len(shards); shard++ {
+		rows := t.portOnly
+		if shard < len(shards) {
+			rows = readTextdataFile(filepath.Join(t.dir, shards[shard]))
+		}
+		for _, fields := range rows {
 			if len(fields) < skilldataMinColumns {
 				continue
 			}
@@ -670,6 +704,7 @@ func (t *TextdataSkills) parse(shards []string) {
 				continue
 			}
 			row := SkillRow{
+				PortOnly:               shard == len(shards),
 				RequiredRace:           SkillRaceAny,
 				ContinueBasicAttack:    textdataU32(fields[continueBasicAttackColumn]) == resumesBasicAttack,
 				CancellationDeferred:   nativeSkillDefersCancellation(fields, spawnParamArity),

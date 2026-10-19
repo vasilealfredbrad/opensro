@@ -13,6 +13,7 @@ commands and cannot bypass actor eligibility.
 // player to trade.
 const ACTION_EXCHANGE = 1006;
 import { defaultUiTuning, type UiTuning, uiTuningFrom } from "@/engine/foundation/ui/ui-tuning";
+import { type ChainLightningHop, chainLightningHopFrom } from "@/engine/foundation/animation/chain-cadence";
 import { guildBanRefused, guildSoldierRefusal } from "@/engine/foundation/gameplay/guild-manager";
 import { advanceGuildWarClock } from "@/engine/foundation/gameplay/guild-war";
 import {
@@ -96,6 +97,15 @@ import { itemCooldown } from "@/engine/foundation/gameplay/item-cooldowns";
 import { skillCooldown } from "@/engine/foundation/gameplay/skill-cooldowns";
 import { uniqueNotice, uniqueReferences } from "@/engine/foundation/gameplay/unique-notices";
 import { inventoryNotice } from "@/engine/foundation/gameplay/inventory-notices";
+import {
+	DEVIL_SPIRIT_STATE_OPCODE,
+	devilBuffShortcuts,
+	devilBuffUnplaced,
+	devilSkillForgotten,
+	devilSkillNoRoomNotice,
+	devilSkillPlacedNotice,
+	devilSpiritNotice
+} from "@/engine/foundation/gameplay/devil-spirit";
 import { alchemyNotice } from "@/engine/foundation/gameplay/alchemy-notices";
 import {
 	emptyPartyMatching,
@@ -105,6 +115,7 @@ import {
 	partyPurposeAllowed
 } from "@/engine/foundation/gameplay/party-matching";
 import { gmRequest, gmReply, gmItemReferences, type GmReply } from "@/engine/foundation/gameplay/gm-command";
+import { gmCatalogQuery, gmCatalogSearch, type GmCatalog } from "@/engine/foundation/gameplay/gm-catalog";
 import { decodeReverseMapPoints, type ReverseMapPoint } from "@/engine/foundation/gameplay/reverse-return-map";
 import {
 	fortressBootstrap,
@@ -253,6 +264,13 @@ import { createCombat } from "./combat/combat";
 import { createTargeting } from "./targeting/targeting";
 import { createMoveReservation } from "./reservation/reservation";
 import { createBetaPlayerMap } from "./beta-map/beta-map";
+import { createBattleRoyale } from "./battle-royale/battle-royale";
+import {
+	battleRoyaleHidesRoster,
+	battleRoyaleLobbyFrom,
+	type BattleRoyaleCircle,
+	battleRoyaleValidBotSettings
+} from "@/engine/foundation/gameplay/battle-royale";
 import type { GameplayCommand, GameplayState } from "@/engine/contracts/gameplay";
 import type { EntityState } from "@/engine/contracts/world";
 import { nearestPickable } from "@/engine/foundation/gameplay/pickup-nearest";
@@ -298,6 +316,7 @@ interface WorldReferences {
 	readonly monster: (
 		codename: string
 	) => import("@/engine/foundation/gameplay/gm-command").GmMonsterReference | undefined;
+	readonly monsters: () => readonly import("@/engine/foundation/gameplay/gm-catalog").GmCatalogMonster[];
 }
 
 // A dress answer may trail its bar by a server tick and the round trip.
@@ -332,6 +351,8 @@ const GUILD_BAN_REFUSED = 0x1f;
 const DEATH_NOTICE = 0x37ce;
 // 75B8D0: the transport bag's trade level [u8].
 const OP_TRADE_STAR_COUNT = 0x352d;
+// Port-only: the beta roster a Battle Royale player sees (battleRoyaleHidesRoster).
+const NO_BETA_PLAYERS: readonly import("@/engine/contracts/gameplay").BetaMapPlayer[] = Object.freeze( [] );
 
 /*
 ================
@@ -388,6 +409,11 @@ export function createGameplay(
 	let uiTuning: UiTuning = defaultUiTuning();
 	// The server's port-only Bandit Den countdown rule (fastDenReturn).
 	let fastDenReturn = false;
+	// The server's port-only Chain Lightning hop rule (chainLightningHop).
+	let chainLightningHop: ChainLightningHop | undefined;
+	// Port-only: the Battle Royale lobby circle every player sees
+	// (battleRoyaleLobby, enterworld/brlobby.go).
+	let battleRoyaleLobby: BattleRoyaleCircle | undefined;
 	// The server's port-only trade-scale rule (tradeTiers).
 	let tradeTiers = false;
 	// The server's port-only job-suit armour rule (jobSuitHidesArmor).
@@ -435,7 +461,9 @@ export function createGameplay(
 		combat = createCombat( readEntity, publishFeedback, () => skillPress.oneWayMs() ),
 		targeting = createTargeting( send ),
 		moveReservation = createMoveReservation(),
-		betaMap = createBetaPlayerMap();
+		betaMap = createBetaPlayerMap(),
+		// Port-only, not native: the Battle Royale match (0x3FB2/0x7FB2).
+		battleRoyale = createBattleRoyale();
 	/*
 ================
 sendFrame
@@ -710,6 +738,9 @@ attack can arrive in the same batch as the previous close and starve the walk.
 	let uniqueRefs = uniqueReferences( {} );
 	let gmReplies: readonly (GmReply & { sequence: number; })[] = [];
 	let gmSequence = 0;
+	// Port-only, not native: the GM panel's last answered search (gm-catalog.ts).
+	let gmCatalog: GmCatalog | undefined;
+	let gmCatalogRevision = 0;
 	// CICPlayer +0x4F6: the transport bag's trade level, set only by 0x352D
 	// (75B8D0, cos-trade-info.ts).
 	let tradeStars = 0;
@@ -732,7 +763,8 @@ attack can arrive in the same batch as the previous close and starve the walk.
 		country: () => undefined,
 		playerModels: () => [],
 		item: () => undefined,
-		monster: () => undefined
+		monster: () => undefined,
+		monsters: () => []
 	};
 	// The session's catalog is fixed; one list per country keeps the
 	// published state's identity stable.
@@ -1044,6 +1076,7 @@ selected entities, cooldowns or world-entry state.
 		journalBag = new Map();
 		moveReservation.clear();
 		betaMap.clear();
+		battleRoyale.clear();
 		partyMatching = emptyPartyMatching();
 		entryVitals = {};
 		warnings = [ false, false ];
@@ -1057,6 +1090,7 @@ selected entities, cooldowns or world-entry state.
 		uniqueRefs = uniqueReferences( {} );
 		gmItems.clear();
 		gmReplies = [];
+		gmCatalog = undefined;
 		tradeStars = 0;
 		notices = [];
 		guide = undefined;
@@ -1203,6 +1237,8 @@ resends nothing. Wiping them here made the next 0x3E58 type-6 row throw
 			storageAutoStack = (value as { storageAutoStack?: unknown; } | null)?.storageAutoStack === true;
 			uiTuning = uiTuningFrom( value );
 			fastDenReturn = (value as { fastDenReturn?: unknown; } | null)?.fastDenReturn === true;
+			chainLightningHop = chainLightningHopFrom( value );
+			battleRoyaleLobby = battleRoyaleLobbyFrom( value );
 			tradeTiers = (value as { tradeTiers?: unknown; } | null)?.tradeTiers === true;
 			jobSuitHidesArmor = (value as { jobSuitHidesArmor?: unknown; } | null)?.jobSuitHidesArmor === true;
 			moonlitThiefSuit = (value as { moonlitThiefSuit?: unknown; } | null)?.moonlitThiefSuit === true;
@@ -1238,6 +1274,7 @@ resends nothing. Wiping them here made the next 0x3E58 type-6 row throw
 				abnormal: 0
 			};
 			gmReplies = [];
+			gmCatalog = undefined;
 			tradeStars = 0;
 			notices = entryEvents.notices.map( key => ({ key, value: 0, sequence: ++noticeSequence }) );
 			feedback.bootstrap( value );
@@ -1819,6 +1856,36 @@ state here before a command can claim a native wire conversation.
 				if ( !eligibility.gm || !localGid ) return null;
 				const frame = gmRequest( command.line, gmItems, local?.heading ?? 0, worldReferences.monster );
 				return frame ? sendFrame( frame ) : null;
+			}
+			if ( command.kind === "battle-royale-pick" ) {
+				// Port-only: sent only while the server would accept it; the owner
+				// remembers the choice and sends it again while the server's frames
+				// name another build (battle-royale.ts).
+				if ( !localGid || !Number.isInteger( command.build ) ) return null;
+				const frame = battleRoyale.pick( command.build, now );
+				return frame ? sendFrame( frame ) : null;
+			}
+			if ( command.kind === "battle-royale-bots" ) {
+				// Port-only: a GM lobby member's bot settings (0x7FB4 version 2),
+				// sent only while the server would take them; its roster answer
+				// shows them. Settings the wire cannot carry are dropped.
+				const settings = { enabled: command.enabled, difficulty: command.difficulty, count: command.count };
+				if ( !localGid || !battleRoyaleValidBotSettings( settings ) ) return null;
+				const frame = battleRoyale.switchBots( settings, eligibility.gm );
+				return frame ? sendFrame( frame ) : null;
+			}
+			if ( command.kind === "gm-catalog" ) {
+				if ( !eligibility.gm ) return null;
+				const asked = command.request;
+				if (
+					(asked.kind !== "item" && asked.kind !== "monster") || typeof asked.category !== "string" ||
+					typeof asked.query !== "string" || !Number.isInteger( asked.page ) || asked.page < 0
+				) throw Error( "Invalid GM catalog request" );
+				const request = { ...asked, query: gmCatalogQuery( asked.query ) };
+				const found = gmCatalogSearch( request, gmItems.values(), worldReferences.monsters() );
+				gmCatalog = { ...request, revision: ++gmCatalogRevision, ...found };
+				dirty = true;
+				return null;
 			}
 			if ( command.kind === "rebirth" ) {
 				if ( local?.gid !== localGid || local?.appearanceState?.[0] !== 2 ) return null;
@@ -2883,6 +2950,10 @@ Packet handling must not depend on which HUD panel is currently open.
 					dirty = true;
 					return true;
 				}
+				if ( battleRoyale.receive( frame, now ) ) {
+					dirty = true;
+					return true;
+				}
 				if ( frame.opcode === DEATH_NOTICE ) {
 					if ( frame.payload.length !== 1 ) throw Error( "Invalid death notice" );
 					rebirthMode = frame.payload[0]!;
@@ -3470,6 +3541,17 @@ Packet handling must not depend on which HUD panel is currently open.
 					dirty = true;
 					return true;
 				}
+				// Port-only: a devil skill withdrawn with its Devil's Spirit
+				// (devil-spirit.ts). Its shortcuts stay: the next devil buff
+				// learned takes them.
+				if ( frame.opcode === DEVIL_SPIRIT_STATE_OPCODE ) {
+					const forgotten = devilSkillForgotten( frame.payload );
+					if ( forgotten !== null ) {
+						bindings = { ...bindings, skills: bindings.skills.filter( id => id !== forgotten ) };
+						dirty = true;
+						return true;
+					}
+				}
 				if ( frame.opcode === 0xb2cb ) {
 					const p = frame.payload;
 					if ( p[0] === 2 && p.length === 2 ) {
@@ -3501,6 +3583,24 @@ Packet handling must not depend on which HUD panel is currently open.
 							row.kind === 0x49 && replaced.has( row.payload ) ? { ...row, payload: id } : row
 						)
 					};
+					// Port-only: a devil buff takes its extension bar shortcut (devil-spirit.ts).
+					for (
+						const row of devilBuffShortcuts( id, bindings.skills, bindings.quickSlots )
+					) {
+						sendWhenLive( quickSlotPacket( row ) );
+						bindings = {
+							...bindings,
+							quickSlots: [ ...bindings.quickSlots.filter( old => old.slot !== row.slot ), row ]
+						};
+						const notice = devilSkillPlacedNotice( id, row.slot );
+						notices = [ ...notices.slice( -99 ), { ...notice, sequence: ++noticeSequence } ];
+					}
+					if ( devilBuffUnplaced( id, bindings.quickSlots ) ) {
+						notices = [ ...notices.slice( -99 ), {
+							...devilSkillNoRoomNotice( id ),
+							sequence: ++noticeSequence
+						} ];
+					}
 					training.receipt( frame.opcode, id );
 					progression = { ...progression, error: undefined };
 					dirty = true;
@@ -4005,6 +4105,8 @@ Packet handling must not depend on which HUD panel is currently open.
 				const refusal = recallAppointmentNotice( frame.opcode, frame.payload ) ??
 					targetNotice( frame.opcode, frame.payload ) ?? portalNotice( frame.opcode, frame.payload ) ??
 					repairNotice( frame.opcode, frame.payload ) ??
+					// Port-only: the Devil's Spirit's scroll, extension and expiry.
+					devilSpiritNotice( frame.opcode, frame.payload ) ??
 					inventoryNotice( frame.opcode, frame.payload, localCountry, mallRequest ) ??
 					alchemyNotice( frame.opcode, frame.payload ) ??
 					skillNotice( frame.opcode, frame.payload, localCountry, fortressActive( fortress ) );
@@ -4089,6 +4191,12 @@ before take assembles the presentation snapshot.
 				dirty = true;
 			}
 			flushBindingRepairs();
+			// Port-only: the Battle Royale countdown's native sounds, and the
+			// player's build choice again while the server stores another.
+			const battleRoyaleCue = battleRoyale.step( now );
+			if ( battleRoyaleCue ) play( battleRoyaleCue, now );
+			const battleRoyalePick = battleRoyale.pickDue( now );
+			if ( battleRoyalePick ) sendWhenLive( battleRoyalePick );
 			const fortressNext = advanceFortressCountdowns( fortress, now );
 			if ( fortressNext !== fortress ) {
 				fortress = fortressNext;
@@ -4349,6 +4457,7 @@ The published plane when something changed since the last take, else null.
 				returnScroll,
 				musicMode,
 				gmReplies,
+				...(eligibility.gm && gmCatalog ? { gmCatalog } : {}),
 				tradeStars,
 				eligibility,
 				autoPotion,
@@ -4367,6 +4476,8 @@ The published plane when something changed since the last take, else null.
 				...(jobSuitHidesArmor ? { jobSuitHidesArmor } : {}),
 				...(moonlitThiefSuit ? { moonlitThiefSuit } : {}),
 				...(homingProjectiles ? { homingProjectiles } : {}),
+				...(chainLightningHop ? { chainLightningHop } : {}),
+				...(battleRoyaleLobby ? { battleRoyaleLobby } : {}),
 				...(reverseMapPoints.length ? { reverseMapPoints } : {}),
 				storage: presentedStorage(),
 				playerModels: localPlayerModels(),
@@ -4417,7 +4528,12 @@ The published plane when something changed since the last take, else null.
 				...c,
 				...targeting.state(),
 				...skillPress.state(),
-				betaPlayers: betaMap.players(),
+				betaPlayers: battleRoyaleHidesRoster( battleRoyale.state() ) ? NO_BETA_PLAYERS : betaMap.players(),
+				...(battleRoyale.state() ? { battleRoyale: battleRoyale.state() } : {}),
+				...(battleRoyale.scoreboard() ? { battleRoyaleScoreboard: battleRoyale.scoreboard() } : {}),
+				...(battleRoyale.bots() ? { battleRoyaleBots: battleRoyale.bots() } : {}),
+				...(battleRoyale.botPositions() ? { battleRoyaleBotPositions: battleRoyale.botPositions() } : {}),
+				...(battleRoyale.airdrop() ? { battleRoyaleAirdrop: battleRoyale.airdrop() } : {}),
 				unlimitedItems,
 				error: m.error ?? i.error ?? c.error ?? targeting.error() ?? progression.error ??
 					training.state().trainingError ?? social.error ?? cosError ?? moveReservation.error() ?? null

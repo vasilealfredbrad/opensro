@@ -17,6 +17,13 @@ type Dependencies interface {
 	CharacterModelRef(character *domain.Character) uint32
 }
 
+// interactionLocker is the optional facet of Dependencies that names a
+// character whose letters are refused for the moment (a battle royale
+// participant, port-only; enterworld.Deps.InteractionLockedFor).
+type interactionLocker interface {
+	InteractionLockedFor(divisionID, characterName string) bool
+}
+
 // Presence is the live-session directory consumed by community wire adapters.
 // It lives at the consumer boundary; the shared implementation is owned by
 // internal/game/social.

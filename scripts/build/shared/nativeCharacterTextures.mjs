@@ -16,7 +16,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { dataAssetPath, convertedTexturePath, dataRoot } from "./jmxAssetIO.mjs";
-import { imageSourceRoot, rebuildRoot } from "../world/paths.mjs";
+import { imageSourceRoot, importDataRoot, rebuildRoot } from "../world/paths.mjs";
 import { listFiles, isMainScript } from "./fsUtils.mjs";
 import { publishFileFromTemp } from "./atomicPublish.mjs";
 import { withGeneratedAssetsLock } from "../../rebuildLock.mjs";
@@ -236,14 +236,25 @@ buildNativeCharacterTextures
 
 Generate missing content-addressed entries in one native device session.
 Private staging prevents a failed process from leaving an admissible cache.
+roots are the extracted data trees to scan: the v1.150 data and, port-only
+and not native, a later client's import (SRO_IMPORT_ROOT) when one is set.
 ================
 */
-export async function buildNativeCharacterTextures() {
+export async function buildNativeCharacterTextures(
+	roots = [ dataRoot, importDataRoot ].filter( /** @returns {root is string} */ root => !!root )
+) {
 	await fs.promises.mkdir( cacheRoot, { recursive: true } );
 	const staging = await fs.promises.mkdtemp( path.join( cacheRoot, ".build-" ) );
 	try {
 		const jobs = [], seen = new Set();
-		for ( const source of await listFiles( dataRoot, { extensions: [ ".ddj" ] } ) ) {
+		const sources = [];
+		for ( const root of roots ) {
+			// The v1.150 tree is required; an import may be partial.
+			if ( root === dataRoot || fs.existsSync( root ) ) {
+				sources.push( ...await listFiles( root, { extensions: [ ".ddj" ] } ) );
+			}
+		}
+		for ( const source of sources ) {
 			if ( !source.toLowerCase().endsWith( ".ddj" ) ) continue;
 			const bytes = await fs.promises.readFile( source );
 			if ( !compressedSource( bytes ) ) continue;

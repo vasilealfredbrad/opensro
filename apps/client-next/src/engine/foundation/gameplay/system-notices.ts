@@ -4,8 +4,9 @@
 system-notices.ts - server frames that become a notice or a banner
 
 Decodes the fortress announcements (0x3887), the server notification and
-the shard's job-kill and drop/plus notices (0x3667), and the command restriction notice
-(0x36EA) into SystemNotice rows the gameplay owner queues for the HUD.
+the shard's job-kill, drop/plus and Battle Royale kill feed notices
+(0x3667), and the command restriction notice (0x36EA) into SystemNotice
+rows the gameplay owner queues for the HUD.
 
 ===========================================================================
 */
@@ -34,6 +35,8 @@ export interface SystemNotice {
 	readonly bannerOnly?: true;
 	readonly jobKill?: true;
 	readonly dropPlus?: true;
+	// Port-only: a Battle Royale kill feed line (KILL_FEED_NOTICE_CHANNEL).
+	readonly killFeed?: true;
 }
 /*
 ================
@@ -71,6 +74,11 @@ export const JOB_KILL_NOTICE_CHANNEL = 0x80;
 // Experimental "Drop & plus notices" row is off.
 export const DROP_PLUS_NOTICE_CHANNEL = 0x81;
 
+// Port-only, not native: the Battle Royale kill feed (docs/battle-royale.md,
+// "Kill feed and banners"), laid out like channel 7 with literal text. It
+// shows only in the HUD's kill feed stack, never as a banner or chat line.
+export const KILL_FEED_NOTICE_CHANNEL = 0x82;
+
 /*
 ================
 isServerNoticeChannel
@@ -93,6 +101,7 @@ and the port-only job-kill and drop/plus channels laid out the same way
 ================
 */
 export function serverNotification( opcode: number, p: Uint8Array ): SystemNotice | null {
+	if ( opcode === 0x3667 && p[0] === KILL_FEED_NOTICE_CHANNEL ) return killFeedNotice( p );
 	if ( opcode !== 0x3667 || !isServerNoticeChannel( p[0] ) ) return null;
 	if ( p.length < 3 ) throw Error( "Truncated server notification" );
 	const n = new DataView( p.buffer, p.byteOffset, p.byteLength ).getUint16( 1, true );
@@ -107,6 +116,23 @@ export function serverNotification( opcode: number, p: Uint8Array ): SystemNotic
 	if ( p[0] === JOB_KILL_NOTICE_CHANNEL ) return { ...notice, jobKill: true };
 	if ( p[0] === DROP_PLUS_NOTICE_CHANNEL ) return { ...notice, dropPlus: true };
 	return notice;
+}
+
+/*
+================
+killFeedNotice
+
+Port-only: a 0x3667 kill feed line, { u8 channel 0x82, u16 length, UTF-16LE
+text }, the channel-7 layout without links. bannerOnly keeps it out of the
+message log; no banner flag keeps it out of the banners.
+================
+*/
+function killFeedNotice( p: Uint8Array ): SystemNotice {
+	if ( p.length < 3 ) throw Error( "Truncated kill feed notice" );
+	const n = new DataView( p.buffer, p.byteOffset, p.byteLength ).getUint16( 1, true );
+	if ( n > 100 || p.length !== 3 + 2 * n ) throw Error( "Invalid kill feed notice length" );
+	const text = new TextDecoder( "utf-16le", { fatal: true } ).decode( p.subarray( 3 ) );
+	return { key: "", text, value: 0, bannerOnly: true, killFeed: true };
 }
 
 /*

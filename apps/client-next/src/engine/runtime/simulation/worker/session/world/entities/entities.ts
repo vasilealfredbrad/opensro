@@ -83,7 +83,10 @@ export function createEntities(
 	const itemRefs = new Map<number, number>(), itemNames = new Map<number, string>();
 	// /LOADMONSTER resolves a typed codename here, as the native client reads
 	// its own character data (GlobalDataManager_GetItemRecordByCodeName).
-	const monsterCodenames = new Map<string, { readonly refObjId: number; readonly monsterType: number; }>();
+	const monsterCodenames = new Map<
+		string,
+		{ readonly refObjId: number; readonly monsterType: number; readonly name?: string; readonly level?: number; }
+	>();
 	const entities = new Map<number, EntityState>(),
 		refs = new Map<number, {
 			teleport?: EntityState["teleport"];
@@ -435,6 +438,22 @@ export function createEntities(
 		monsterReference( codename: string ): { readonly refObjId: number; readonly monsterType: number; } | undefined {
 			return monsterCodenames.get( codename );
 		},
+		/*
+		================
+		monsterCatalog
+
+		Every monster a GM can spawn, by codename, with its English name and
+		level for the GM panel's search (port-only, not native).
+		================
+		*/
+		monsterCatalog(): import("@/engine/foundation/gameplay/gm-catalog").GmCatalogMonster[] {
+			return Array.from( monsterCodenames, ( [codename, row] ) => ({
+				codename,
+				name: row.name ?? "",
+				level: row.level ?? 0,
+				monsterType: row.monsterType
+			}) );
+		},
 		characterCountry( refObjId: number ): number | undefined {
 			return refs.get( refObjId )?.countryByte9c;
 		},
@@ -596,7 +615,12 @@ export function createEntities(
 					(!Number.isInteger( row.monsterType ) || row.monsterType < 0 || row.monsterType > 255)
 				) throw Error( "Invalid entity reference monsterType" );
 				if ( row.kind === "monster" && typeof row.codename === "string" && row.codename ) {
-					monsterCodenames.set( row.codename, { refObjId: row.refObjId, monsterType: row.monsterType ?? 0 } );
+					monsterCodenames.set( row.codename, {
+						refObjId: row.refObjId,
+						monsterType: row.monsterType ?? 0,
+						...(row.name ? { name: row.name } : {}),
+						...(Number.isInteger( row.level ) && row.level! > 0 ? { level: row.level } : {})
+					} );
 				}
 				if (
 					row.kind === "teleport" &&

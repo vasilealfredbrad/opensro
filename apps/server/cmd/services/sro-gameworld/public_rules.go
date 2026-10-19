@@ -25,6 +25,7 @@ import (
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/alchemy"
 	"opensro.online/server/internal/game/item/commerce"
+	"opensro.online/server/internal/game/item/devilspirit"
 	"opensro.online/server/internal/game/progression"
 	"opensro.online/server/internal/game/quest"
 	"opensro.online/server/internal/game/social/party"
@@ -34,10 +35,25 @@ import (
 	"opensro.online/server/internal/game/world/simulation"
 )
 
+const (
+	// nativeChainLightningTargets and nativeChainLightningMeters are every
+	// Chain Lightning rank's own efr chain: 3 targets, radius 100 (10 m).
+	nativeChainLightningTargets = 3
+	nativeChainLightningMeters  = 10
+	// nativeChainLightningFalloff is every rank's efr damage reduction per
+	// victim, in percent.
+	nativeChainLightningFalloff = 25
+	// deployedChainLightningHopMs is the job file's hop period, which the
+	// rule's text names while the shard runs the native flight.
+	deployedChainLightningHopMs = 500
+)
+
 // unlistedSettings are the shard settings the rules page leaves out, each
 // with the reason; every other setting is a rule (public_rules_test.go).
 var unlistedSettings = map[string]string{
 	action.EnvGMSetSpeed: "a GM command, not a rule players meet",
+	// The Chain Lightning rule's text shows its radius.
+	action.EnvChainLightningRange: "shown in the Chain Lightning rule",
 	// The tunables a rule's own text shows (game/tunables).
 	"SRO_MOST_WANTED_TEST_KILLS":      "shown in the Most Wanted test pacing rule",
 	"SRO_MOST_WANTED_TEST_BOUNTY":     "shown in the Most Wanted test pacing rule",
@@ -84,6 +100,18 @@ func publicRules() publicstats.RulesResponse {
 	shopGoods, _ := commerce.ExtraGoodsFromEnv()
 	mallGoods, _ := commerce.MallExtraGoodsFromEnv()
 	rideFactor, rideOn, _ := enterworld.MallRideSpeedFromEnv()
+	chainLightning, _ := action.ChainLightningFromEnv()
+	chainTargets, chainMeters := int(chainLightning.Targets), int64(chainLightning.RangeMeters)
+	if chainTargets == 0 {
+		chainTargets = nativeChainLightningTargets
+	}
+	if chainMeters == 0 {
+		chainMeters = nativeChainLightningMeters
+	}
+	chainHopMs := int64(chainLightning.HopMs)
+	if chainHopMs == 0 {
+		chainHopMs = deployedChainLightningHopMs
+	}
 	settings := tunables.Current()
 	testKills := settings.Int(tunables.MostWantedTestKills)
 	return publicstats.RulesResponse{
@@ -216,6 +244,26 @@ func publicRules() publicstats.RulesResponse {
 				Native: "A trade transport you step off stays where it stands, and you cannot walk more than 100 m away from it.",
 				Now:    "A trade transport you step off follows you on foot, like a pet.",
 				Why:    "Requested for the beta so a trader or a thief can fight or loot beside the cargo; the original returns with one setting."},
+			{Flag: action.EnvChainLightningTargets, On: chainLightning.Enabled(),
+				Native: fmt.Sprintf("Chain Lightning strikes its target and the nearest enemies within %d m of it, %d at most.",
+					nativeChainLightningMeters, nativeChainLightningTargets),
+				Now: fmt.Sprintf("Chain Lightning strikes its target and the nearest enemies within %s m of it, %d at most.",
+					groupedGold(chainMeters), chainTargets),
+				Why: "Requested for the beta; the original chain returns with the two settings off."},
+			{Flag: action.EnvChainLightningFullDamage, On: chainLightning.FullDamage,
+				Native: fmt.Sprintf("Each enemy Chain Lightning jumps to takes %d%% less damage than the one before.",
+					nativeChainLightningFalloff),
+				Now: "Every enemy in the chain takes Chain Lightning's full damage.",
+				Why: "Requested for the beta, with the longer chain; the original falloff returns with one setting."},
+			{Flag: action.EnvBattleRoyale, On: action.BattleRoyaleFromEnv(),
+				Native: "No battle royale: Wind Town is an ordinary town and Roc Mountain an ordinary hunting ground.",
+				Now:    "A red circle in Wind Town starts a last-player-standing match in a private Roc Mountain: two or more players in it drop as level-1 match characters, farm, fight free-for-all inside a shrinking zone, and the winner earns 1000 silk. The real character waits unchanged and returns at the end.",
+				Why:    "Requested for the beta as an event; the original returns with one setting."},
+			{Flag: action.EnvChainLightningHop, On: chainLightning.HopMs != 0,
+				Native: "Chain Lightning's bolt flies on from each enemy to the next at its own speed.",
+				Now: fmt.Sprintf("Chain Lightning's bolt jumps to the next enemy every %s seconds, so the chain can be followed by eye.",
+					strconv.FormatFloat(float64(chainHopMs)/1000, 'f', -1, 64)),
+				Why: "Requested for the beta; the original flight returns with one setting."},
 			{Flag: action.EnvJobGoodsTeleport, On: action.JobGoodsTeleportFromEnv(),
 				Native: "With a trade transport out you cannot use a town gate, a return scroll or the reverse return (ferries are allowed).",
 				Now:    "You can use town gates, return scrolls and the reverse return with a trade transport out; the transport travels with you.",
@@ -251,6 +299,10 @@ func publicRules() publicstats.RulesResponse {
 				Native: "The level-20 thief suits look as they always have: a black hood with red trim, or the European suit's own look.",
 				Now:    "They wear the Moonlit Ash look: the higher thief suit's outfit in ash-silver silk with pale-gold trim. Only the look changes.",
 				Why:    "Picked for the beta by the community's balance advisor; the original look returns with one setting."},
+			{Flag: devilspirit.EnvDevilSpirit, On: devilspirit.FromEnv(),
+				Native: "There is no Devil's Spirit: it arrived in a much later client.",
+				Now:    "The Devil's Spirit (crimson, golden and blue A grade, and the S grade) is worn in the avatar attachment socket, with or without an avatar dress (double-click it in the bag). Worn, it awakens for 28 days: it raises maximum HP and MP by 15-30 %, at higher enhancement levels the block rate, adds 2-10 % damage against unique monsters, and teaches its devil skill (a 10-minute buff that draws the devil on its wearer), placed on a free shortcut. The Awakening Enhancement Scroll, dropped on it in the bag, raises its level for 3 hours; the Extension gear renews an expired one. In Battle Royale an airdrop's guardian leaves one, awakened for good, about once in 40 kills.",
+				Why:    "Owner-approved for the beta; the original item list returns with one setting."},
 			{Flag: action.EnvFastDenReturn, On: action.FastDenReturnFromEnv(),
 				Native: "The Bandit Den Return Scroll counts down 5 minutes before the thief arrives.",
 				Now:    "It counts down 2 minutes 30 seconds.",

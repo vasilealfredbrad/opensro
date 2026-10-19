@@ -3,7 +3,7 @@
 
 authority_upgrade.go - the offline, preserving authority upgrade
 
-Brings schemas 13 through 26 to schema 27, layout 10. Takes the same exclusive authority lock as the game
+Brings schemas 13 through 27 to schema 28, layout 10. Takes the same exclusive authority lock as the game
 server, validates every existing record and keeps an independent backup.
 Schema 13 also gains the two account tables from layout 5; every layout 5
 source gains the empty fortress tables of layout 6, and every layout 7
@@ -49,6 +49,7 @@ const preLedgerVersion = 24
 const preLedgerLayoutVersion = 9
 const preGuildFoundedVersion = 25
 const preAcademyHonorVersion = 26
+const preBattleRoyaleVersion = 27
 
 // ErrAuthorityCurrent reports an authority already in the current format: a
 // release retried after a committed upgrade has nothing left to do.
@@ -186,6 +187,13 @@ func UpgradeAuthority(dir string, commit bool) (string, error) {
 		// Schema 26 ran at layouts 5 through 10 and has no training-camp
 		// honor/evaluation fields or disband timestamp; its records read
 		// unchanged.
+		if layout < preFortressLayoutVersion || layout > CurrentLayoutVersion {
+			return "", fmt.Errorf("authority upgrade: unsupported layout %d for schema %d", layout, schema)
+		}
+		sourceLayout = layout
+	case preBattleRoyaleVersion:
+		// Schema 27 ran at layouts 5 through 10 and has no battle royale
+		// hold; its records read unchanged.
 		if layout < preFortressLayoutVersion || layout > CurrentLayoutVersion {
 			return "", fmt.Errorf("authority upgrade: unsupported layout %d for schema %d", layout, schema)
 		}

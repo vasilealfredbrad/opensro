@@ -24,6 +24,7 @@ func cloneCharacter(source *Character) *Character {
 	clone := *source
 	clone.PK = clonePointer(source.PK)
 	clone.EventMembership = clonePointer(source.EventMembership)
+	clone.BattleRoyaleHeld = cloneBattleRoyaleHold(source.BattleRoyaleHeld)
 	if source.Aggressions != nil {
 		clone.Aggressions = make(map[uint32]uint32, len(source.Aggressions))
 		for gid, ticks := range source.Aggressions {

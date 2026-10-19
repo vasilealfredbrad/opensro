@@ -47,6 +47,11 @@ Register
 func (rt *Runtime) Register(hub *transport.Hub) {
 	rt.registerDeparture(hub)
 	rt.registerMall(hub)
+	// Port-only, not native: the battle royale build pick (SRO_BATTLE_ROYALE).
+	if rt.battleRoyale != nil {
+		hub.Handle(wire.OpBattleRoyalePick, rt.hubHandler(hub, rt.HandleBattleRoyalePick))
+		hub.Handle(wire.OpBattleRoyaleBots, rt.hubHandler(hub, rt.HandleBattleRoyaleBots))
+	}
 	hub.Handle(0x7341, rt.hubHandler(hub, rt.HandleBerserk))
 	hub.Handle(0x7495, rt.hubHandler(hub, rt.HandlePortal))
 	hub.Handle(opFortressInteraction, rt.hubHandler(hub, rt.HandleFortressInteraction))

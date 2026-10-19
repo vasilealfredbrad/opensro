@@ -9,6 +9,7 @@ ammunition.go - Package action.
 package action
 
 import (
+	"opensro.online/server/internal/game/battleroyale"
 	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/inventory"
 	"opensro.online/server/internal/game/item/wire"
@@ -93,7 +94,12 @@ func (rt *Runtime) planEquippedAmmunition(character *enterworld.Character, weapo
 			(row.TypeFlags != 0 && row.TypeFlags != ref.TypeFlags()) {
 			return ammunitionDebit{}, false
 		}
-		return ammunitionDebit{index: index, remaining: max(0, row.StackCount-max(1, spent))}, true
+		debit := ammunitionDebit{index: index, remaining: max(0, row.StackCount-max(1, spent))}
+		// Port-only: a battle royale match character never runs out.
+		if battleroyale.Held(character) {
+			debit.remaining = row.StackCount
+		}
+		return debit, true
 	}
 	return ammunitionDebit{}, false
 }

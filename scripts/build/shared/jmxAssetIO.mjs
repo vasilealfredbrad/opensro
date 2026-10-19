@@ -8,15 +8,23 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { extractedRoot, imageSourceRoot, normalizeAssetPath } from "../world/paths.mjs";
+import { extractedRoot, imageSourceRoot, importDataRoot, normalizeAssetPath } from "../world/paths.mjs";
 import { parseJmxBmtMaterialSet, resolveBmtTexturePath } from "../world/objects/formats.mjs";
 
 /** Root of extracted game data (prim/, res/, …). */
 export const dataRoot = path.join( extractedRoot, "Data_extracted" );
 
-/** Absolute path for a game-relative asset (e.g. res/cos/t_horse1.bsr). */
+/**
+ * Absolute path for a game-relative asset (e.g. res/cos/t_horse1.bsr).
+ * Port-only, not native: with SRO_IMPORT_ROOT set, a path the v1.150 data
+ * lacks resolves into the later client's import; a v1.150 file always wins.
+ */
 export function dataAssetPath( gamePath ) {
-	return path.join( dataRoot, ...normalizeAssetPath( gamePath ).split( "/" ) );
+	const parts = normalizeAssetPath( gamePath ).split( "/" );
+	const retail = path.join( dataRoot, ...parts );
+	if ( !importDataRoot || existsSync( retail ) ) return retail;
+	const imported = path.join( importDataRoot, ...parts );
+	return existsSync( imported ) ? imported : retail;
 }
 
 /** Read a game-relative asset from Data_extracted. */

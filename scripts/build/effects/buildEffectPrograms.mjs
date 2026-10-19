@@ -44,6 +44,7 @@ import {
 	extractedRoot,
 	gameRoot,
 	imageSourceRoot,
+	importRoot,
 	normalizeAssetPath,
 	publicRoot,
 	rebuildRoot,
@@ -51,10 +52,14 @@ import {
 } from "../world/paths.mjs";
 import { collectJmxEffectTexturePaths, parseJmxVisualEffect } from "./parseJmxVisualEffect.mjs";
 import { buildEffectRecordTable } from "../char/parseSkillEffect.mjs";
+import { devilSpiritEffectSources, loadDevilSpiritPresentation } from "../char/devilSpiritPresentation.mjs";
 import { loadCharacterDataRows } from "../char/resolveCharRoster.mjs";
 import { parseStructureEffects } from "../char/structureEffects.mjs";
 
 const particlesRoot = path.join( extractedRoot, "Particles_extracted" );
+// Port-only, not native: the later client's particles the devil skills
+// draw (devilSpiritPresentation.mjs), when SRO_IMPORT_ROOT names one.
+const importParticlesRoot = importRoot ? path.join( importRoot, "Particles_extracted" ) : null;
 const skillEffectPath = path.join(
 	retailTextdataRoot,
 	"skilleffect.txt"
@@ -91,6 +96,24 @@ function fileIndex( root, extension ) {
 		}
 	}
 	return out;
+}
+
+/*
+================
+withImportedFiles
+
+Port-only, not native: index plus the import's files (importParticlesRoot)
+under paths v1.150 does not have. A v1.150 file always wins, and an
+imported basename never makes a v1.150 lookup ambiguous: only the devil
+skills name these paths, each exactly.
+================
+*/
+function withImportedFiles( index, extension ) {
+	if ( !importParticlesRoot ) return index;
+	for ( const [key, file] of fileIndex( importParticlesRoot, extension ) ) {
+		if ( !index.has( key ) ) index.set( key, file );
+	}
+	return index;
 }
 
 /*
@@ -169,7 +192,14 @@ Every reachable EFP, grouped by the native owner that references it.
 ================
 */
 export function collectEffectReferences() {
-	const { table, namedTable } = buildEffectRecordTable( retailTextdataRoot, skillEffectPath );
+	const { table, namedTable } = buildEffectRecordTable(
+		retailTextdataRoot,
+		skillEffectPath,
+		null,
+		null,
+		// Port-only, not native: the devil skills' rows (buildSkillEffectRecords.mjs).
+		devilSpiritEffectSources( loadDevilSpiritPresentation() )
+	);
 	const recordReferences = new Set();
 	const add = ( value ) => {
 		const normalized = normalizeAssetPath( value ?? "" );
@@ -519,8 +549,8 @@ export async function buildEffectProgramsAsset() {
 		return { written: false, effects: 0, meshes: 0, textures: 0 };
 	}
 
-	const efpIndex = fileIndex( particlesRoot, ".efp" );
-	const bmsIndex = fileIndex( particlesRoot, ".bms" );
+	const efpIndex = withImportedFiles( fileIndex( particlesRoot, ".efp" ), ".efp" );
+	const bmsIndex = withImportedFiles( fileIndex( particlesRoot, ".bms" ), ".bms" );
 	const pngIndex = fileIndex( particleImageRoot, ".png" );
 	const effects = {};
 	const ambiguousEffectAliases = {};

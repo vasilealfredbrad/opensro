@@ -19,7 +19,6 @@ guild and the unions retained by the fortress.
 package action
 
 import (
-	"opensro.online/server/internal/game/enterworld"
 	"opensro.online/server/internal/game/item/wire"
 	"opensro.online/server/internal/game/world/instance"
 	"opensro.online/server/internal/game/world/simulation"
@@ -120,7 +119,7 @@ func (rt *Runtime) runFortressPhase(phase fortressPhase) {
 			continue
 		}
 		world := instance.Pack(definition.ID, portalWorldLayer)
-		for _, c := range rt.fortressResidents(phase.division, world) {
+		for _, c := range rt.worldResidents(phase.division, world) {
 			if phase.mode == fortressPhaseEnd {
 				rt.retireFortressBattleRank(phase.division, c, fortressID, phase.dueMs)
 			}
@@ -140,32 +139,6 @@ func (rt *Runtime) runFortressPhase(phase fortressPhase) {
 			rt.Fortresses.ReleaseBattleRecords(phase.division, fortressID)
 		}
 	}
-}
-
-/*
-================
-fortressResidents
-
-The characters admitted to a world's layer, in name order.
-================
-*/
-func (rt *Runtime) fortressResidents(division string, world instance.ID) []*enterworld.Character {
-	var out []*enterworld.Character
-	rt.characterAdmissions.Range(func(_, value any) bool {
-		admission := value.(populationAdmission)
-		if admission.division == division && admission.lease.ID == world {
-			if c := rt.findCharacter(division, admission.name); c != nil {
-				out = append(out, c)
-			}
-		}
-		return true
-	})
-	for i := 1; i < len(out); i++ {
-		for j := i; j > 0 && out[j].Name < out[j-1].Name; j-- {
-			out[j], out[j-1] = out[j-1], out[j]
-		}
-	}
-	return out
 }
 
 /*

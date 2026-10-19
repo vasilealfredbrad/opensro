@@ -8,6 +8,7 @@ import { iterateTextDataLines, readLocalizedTextDataRowsSync, stripFullLineComme
 import { completeItemText, ITEM_TEXT_COMPLETIONS } from "./itemTextCompletions.mjs";
 import { assertItemNameCoverage } from "./itemNameCoverage.mjs";
 import { assertEnglishCompletionCoverage, completedEnglish, ENGLISH_COMPLETION_FILES } from "./englishCompletions.mjs";
+import { devilSpiritTextEntries } from "../char/devilSpiritData.mjs";
 
 export async function buildTextResources() {
 	assertTextEnglishCoverage();
@@ -19,6 +20,11 @@ export async function buildTextResources() {
 	// twin (sub_796330), seeded from this catalog.
 	const dataNameCatalog = await buildTextCatalog( path.join( textDataDir, "textdataname.txt" ) );
 	completeItemText( dataNameCatalog.entries );
+	// Port-only, not native: the Devil's Spirit's devil skill names
+	// (devilSpiritData.mjs), symbols no v1.150 textdata row fills.
+	for ( const [symbol, text] of Object.entries( devilSpiritTextEntries() ) ) {
+		dataNameCatalog.entries[symbol] ??= text;
+	}
 	assertItemNameCoverage( textDataDir, dataNameCatalog.entries );
 	// worldmap_localinfo.txt rows (native CGlobalDataManager_ParseScriptRecord
 	// case 4): shipped as raw tab-token rows; the browser plane runs the REAL

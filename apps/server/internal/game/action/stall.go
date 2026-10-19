@@ -34,6 +34,7 @@ package action
 import (
 	"bytes"
 	"errors"
+	"opensro.online/server/internal/game/battleroyale"
 	"unicode/utf8"
 
 	"opensro.online/server/internal/domain"
@@ -91,6 +92,10 @@ func (rt *Runtime) HandleStallCreate(division string, c *enterworld.Character, p
 	unlock := rt.lockDivision(division)
 	defer unlock()
 	refuse := func(code uint8) OpResult { return stallAnswer(wire.OpStallCreateResult, code) }
+	// Port-only: a battle royale match character opens no stall.
+	if battleroyale.Held(c) {
+		return refuse(wire.StallErrNameLength)
+	}
 	if n := utf8.RuneCountInString(title); n == 0 || n > stall.TextLimit {
 		return refuse(wire.StallErrNameLength)
 	}

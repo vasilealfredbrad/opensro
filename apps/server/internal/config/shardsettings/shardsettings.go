@@ -85,6 +85,8 @@ var Settings = []Setting{
 	{Env: "SRO_JOB_SUIT_HIDES_ARMOR", NomadVar: "job_suit_hides_armor", Default: "on"},
 	// Owner, 2026-10-15: level-20 thief suits wear the Moonlit Ash look.
 	{Env: "SRO_MOONLIT_THIEF_SUIT", NomadVar: "moonlit_thief_suit", Default: "on"},
+	// Owner, 2026-10-18: the Devil's Spirit of a later client, as an avatar attachment.
+	{Env: "SRO_DEVIL_SPIRIT", NomadVar: "devil_spirit", Default: "on"},
 	// Owner, 2026-10-14: no transport summon during the Bandit Den countdown.
 	{Env: "SRO_DEN_NO_TRANSPORT_SUMMON", NomadVar: "den_no_transport_summon", Default: "on"},
 	// Owner, 2026-10-14: a trader's goods drop on rider death and field logout.
@@ -144,6 +146,18 @@ var Settings = []Setting{
 	{Env: "SRO_TRANSPORT_FOLLOW", NomadVar: "transport_follow", Default: "off"},
 	// Owner, 2026-10-15: town teleport with a trade transport out (testing).
 	{Env: "SRO_JOB_GOODS_TELEPORT", NomadVar: "job_goods_teleport", Default: "on"},
+	// Owner, 2026-10-18: Chain Lightning chains to 50 targets within
+	// 10000 m (natively 3 within 10 m); "off" is native.
+	{Env: "SRO_CHAIN_LIGHTNING_TARGETS", NomadVar: "chain_lightning_targets", Default: "50"},
+	{Env: "SRO_CHAIN_LIGHTNING_RANGE_METERS", NomadVar: "chain_lightning_range_meters", Default: "10000"},
+	// Owner, 2026-10-18: every Chain Lightning victim takes full damage
+	// (natively 25% less per victim), and the bolt hops every 500 ms; "off"
+	// is native for both.
+	{Env: "SRO_CHAIN_LIGHTNING_FULL_DAMAGE", NomadVar: "chain_lightning_full_damage", Default: "on"},
+	{Env: "SRO_CHAIN_LIGHTNING_HOP_MS", NomadVar: "chain_lightning_hop_ms", Default: "500"},
+	// Owner, 2026-10-18: the battle royale mode in Roc Mountain
+	// (docs/battle-royale.md); "off" is native: no lobby, no match.
+	{Env: "SRO_BATTLE_ROYALE", NomadVar: "battle_royale", Default: "on"},
 	{Env: "SRO_ELIXIR_DROPS_OFF", NomadVar: "elixir_drops_off", Default: "on", Catalogue: true},
 	// Owner, 2026-10-14: alchemy materials no longer drop; "off" is native.
 	{Env: "SRO_ALCHEMY_MATERIAL_DROPS_OFF", NomadVar: "alchemy_material_drops_off", Default: "on", Catalogue: true},

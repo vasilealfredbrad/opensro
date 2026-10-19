@@ -102,6 +102,21 @@ export function skinModelsOf( models: readonly PlayerModel[], sex: number ): rea
 
 /*
 ================
+playerModelSex
+
+The sex selector (+0x1AC, the domain an item's reqGender uses) of the body
+a character wears, from its country's player models; undefined when the
+models do not hold it. The worn body is the authority: a Battle Royale
+race swap changes it in place, while the character list still names the
+character's own body.
+================
+*/
+export function playerModelSex( models: readonly PlayerModel[], refObjId: number | undefined ): number | undefined {
+	return refObjId === undefined ? undefined : models.find( row => row.refObjId === refObjId )?.sex;
+}
+
+/*
+================
 shapeStep
 ================
 */

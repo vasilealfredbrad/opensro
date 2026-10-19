@@ -254,6 +254,8 @@ export function createUiBridge(
 			/^F([1-9]|1[0-2])$/.test( code ) && code !== "F5" && code !== "F11" &&
 			code !== "F12"
 		) event.preventDefault();
+		// Port-only: Ctrl+G is the GM panel's key, not the browser's find bar.
+		if ( code === "KeyG" && event.ctrlKey && !event.shiftKey && !event.altKey ) event.preventDefault();
 		if ( code === "Backquote" && event.shiftKey ) {
 			event.preventDefault();
 			if ( !event.repeat ) emit( { kind: "key", code, shift: true, ctrl: event.ctrlKey } );

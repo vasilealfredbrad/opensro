@@ -297,6 +297,11 @@ func (rt *Runtime) HandleItemUse(
 				division: divisionID, ref: ref, row: rowIndex, request: request, nowMs: nowMs,
 			}, character, tail, family == itemUseSkillTimeTicket, &result)
 		}
+		if family == itemUseDevilSpiritUpgrade || family == itemUseDevilSpiritExtension {
+			return rt.useDevilSpiritEtc(skillItemUse{
+				division: divisionID, ref: ref, row: rowIndex, request: request, nowMs: nowMs,
+			}, character, tail, family == itemUseDevilSpiritUpgrade, &result)
+		}
 		if family == itemUseGenderTool {
 			return rt.useGenderTool(skillItemUse{
 				division: divisionID, ref: ref, row: rowIndex, request: request, nowMs: nowMs,

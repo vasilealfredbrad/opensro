@@ -55,6 +55,20 @@ func TestQuestGuardianUsesExactPopulationAndDoesNotRespawn(t *testing.T) {
 	if len(state.InstancesInRegions("quest", []uint16{0x655e})) != 0 {
 		t.Fatal("script guardian acquired a respawning nest")
 	}
+	// A requested grade (port-only callers) overrides the reference's own,
+	// the way a GM spawn does; 0 keeps it.
+	champion := request
+	champion.Rarity = 1
+	if !state.SpawnQuestMonster(champion) {
+		t.Fatal("champion admission failed")
+	}
+	actors = state.MaterializedInstances("quest")
+	if len(actors) != 1 || !actors[0].Nest.HasRarityOverride || actors[0].Rarity() != 1 || actors[0].CurrentHP <= 100 {
+		t.Fatalf("champion grade not applied: %+v", actors)
+	}
+	if !state.Defeat("quest", actors[0].Gid, time.UnixMilli(1002)) {
+		t.Fatal("champion could not retire")
+	}
 	request.Position.RegionID |= 0x8000
 	if state.SpawnQuestMonster(request) {
 		t.Fatal("indoor guardian admitted")

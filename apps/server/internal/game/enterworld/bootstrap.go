@@ -118,6 +118,19 @@ func Build(deps *Deps, request BootstrapRequest) *BootstrapResult {
 		}
 	}
 
+	// A battle royale hold left by a crash or a logout mid-match is
+	// restored first, so every read below sees the real character
+	// (port-only, docs/battle-royale.md "Persistence").
+	if deps.RestoreHeldCharacter != nil && character.BattleRoyaleHeld != nil {
+		if err := deps.RestoreHeldCharacter(divisionID, liveCharacter); err != nil {
+			return Failure(nativeErrorInvalidRequest, "battleRoyaleRestore: "+err.Error())
+		}
+		character = readCharacterSnapshot(deps, divisionID, liveCharacter)
+		if character == nil {
+			return Failure(nativeErrorCharacter, "characterNotFound")
+		}
+	}
+
 	// The beta starter kit backfills every character on entry (starterkit.go),
 	// and its HP/MP potions are topped up to a full stack (starterrefill.go).
 	kitMissing := len(deps.StarterKit) > 0 && StarterKitMissing(character, deps.StarterKit)
@@ -306,6 +319,8 @@ func buildCharacterProjection(deps *Deps, divisionID string, character *Characte
 		JobSuitHidesArmor:    deps.JobSuitHidesArmor,
 		MoonlitThiefSuit:     deps.MoonlitThiefSuit,
 		UiTuning:             UiTuningFrom(tunables.Current()),
+		ChainLightningHop:    deps.ChainLightningHop,
+		BattleRoyaleLobby:    deps.BattleRoyaleLobby,
 	}
 }
 

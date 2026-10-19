@@ -415,6 +415,8 @@ export interface ActorOwner {
 		duration( path: string, clip: string ): number;
 		plan( paths: readonly string[] ): boolean;
 		ready( path: string ): boolean;
+		// A cosmetic step skipped instead of failing (resources.ts degrade).
+		degrade( degradation: import("@/engine/contracts/network").Degradation ): void;
 	};
 	readonly skillObjects: {
 		frame(

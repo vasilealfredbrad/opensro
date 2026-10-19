@@ -33,6 +33,15 @@ import {
 	WALK_TERRAIN
 } from "./walk-table";
 import { footprintGeometry, footprintTextures } from "@/engine/foundation/rendering/footprints";
+import {
+	FOG_WALL_VERTICES,
+	fogWallGeometry,
+	GROUND_RING_SEGMENTS,
+	groundRingGeometry,
+	writeFogWall,
+	writeGroundRing
+} from "@/engine/foundation/rendering/ground-ring";
+import type { GroundRing } from "@/engine/contracts/ground-ring";
 import { createMaterialTimeline } from "@/engine/foundation/rendering/material-timeline";
 import { createTextureFactorPulse } from "@/engine/foundation/rendering/texture-factor-pulse";
 import { createTextureAtlas } from "@/engine/foundation/rendering/texture-atlas";
@@ -86,7 +95,8 @@ import {
 	worldEnvironment,
 	environmentTarget,
 	environmentTime,
-	advanceEnvironment
+	advanceEnvironment,
+	applyZoneFog
 } from "@/engine/foundation/rendering/world-environment";
 import {
 	FRONTEND_SCENE_BYTES,
@@ -308,6 +318,92 @@ export function createWorldRenderer(
 			result.push( row.draw );
 		}
 		return result;
+	}
+	// Port-only, not native: the Battle Royale ground rings (ground-ring.ts).
+	// One retained draw a ring slot; a moved circle rewrites its positions in
+	// place, a new scene, new terrain cells, a new colour or a change between
+	// strip and fog wall builds it again. zoneFog is how far the scene's fog
+	// closes in around a player outside the zone (applyZoneFog).
+	let groundRings: readonly GroundRing[] = [], zoneFog = 0;
+	const ringSlots: ({
+		draw: GeometryDraw;
+		positions: Float32Array;
+		ring: GroundRing;
+		scene: WorldScene;
+		cells: ReturnType<typeof terrainInteractionCells>;
+		visible: boolean;
+	} | undefined)[] = [];
+	const ringDraws: GeometryDraw[] = [];
+	/*
+	================
+	releaseGroundRings
+	================
+	*/
+	function releaseGroundRings( geometry: GeometryCommands | null ) {
+		for ( const slot of ringSlots ) if ( slot ) geometry?.release( slot.draw );
+		ringSlots.length = 0;
+		ringDraws.length = 0;
+	}
+	/*
+	================
+	prepareGroundRings
+
+	The ring draws this frame: each published ring laid on the current
+	scene's terrain, relative to its origin region. Rings stay off a dungeon
+	scene, whose local frame is not on the world grid.
+	================
+	*/
+	function prepareGroundRings( geometry: GeometryCommands ): readonly GeometryDraw[] {
+		ringDraws.length = 0;
+		for ( let i = groundRings.length; i < ringSlots.length; i++ ) {
+			if ( ringSlots[i] ) geometry.release( ringSlots[i]!.draw );
+		}
+		ringSlots.length = Math.min( ringSlots.length, groundRings.length );
+		if ( !current || current.residency === "frontend" || current.originRegion & 0x8000 ) return ringDraws;
+		for ( let index = 0; index < groundRings.length; index++ ) {
+			const ring = groundRings[index]!;
+			let slot = ringSlots[index];
+			if ( slot && slot.ring === ring && slot.scene === current && slot.cells === interactionCells ) {
+				if ( slot.visible ) ringDraws.push( slot.draw );
+				continue;
+			}
+			const local = {
+				x: ring.x - (current.originRegion & 255) * 1920,
+				z: ring.z - (current.originRegion >>> 8) * 1920,
+				radius: ring.radius,
+				...(ring.width === undefined ? {} : { width: ring.width })
+			};
+			const wall = ring.wall;
+			const sameDraw = slot && slot.scene === current &&
+				(slot.ring.wall === undefined) === (wall === undefined) &&
+				slot.ring.color.every( ( v, k ) => v === ring.color[k] );
+			const positions = sameDraw ?
+				slot!.positions :
+				new Float32Array( wall === undefined ? GROUND_RING_SEGMENTS * 2 * 3 : FOG_WALL_VERTICES * 3 );
+			const visible = wall === undefined ?
+				writeGroundRing( positions, interactionCells, local ) :
+				writeFogWall( positions, interactionCells, {
+					x: local.x,
+					z: local.z,
+					radius: local.radius,
+					height: wall
+				} );
+			if ( sameDraw ) geometry.updatePositions( slot!.draw, positions );
+			else {
+				if ( slot ) geometry.release( slot.draw );
+				slot = undefined;
+			}
+			const draw = slot?.draw ??
+				geometry.upload(
+					wall === undefined ?
+						groundRingGeometry( positions, ring.color ) :
+						fogWallGeometry( positions, ring.color )
+				);
+			slot = { draw, positions, ring, scene: current, cells: interactionCells, visible };
+			ringSlots[index] = slot;
+			if ( visible ) ringDraws.push( draw );
+		}
+		return ringDraws;
 	}
 	/*
 	================
@@ -1211,6 +1307,29 @@ export function createWorldRenderer(
 		},
 		/*
 		================
+		groundRings
+
+		Port-only: the circles to lay on the ground (ground-ring.ts). A ring
+		object that did not change keeps its draw as it is.
+		================
+		*/
+		groundRings( value: readonly GroundRing[] ) {
+			groundRings = value;
+		},
+		/*
+		================
+		zoneFog
+
+		Port-only: how far the scene's fog closes in (0 none, 1 fully) while
+		the local player stands outside the Battle Royale zone. The
+		environment's own smoothing eases it in and out (applyZoneFog).
+		================
+		*/
+		zoneFog( value: number ) {
+			zoneFog = Math.min( 1, Math.max( 0, Number.isFinite( value ) ? value : 0 ) );
+		},
+		/*
+		================
 		weather
 		================
 		*/
@@ -1702,11 +1821,14 @@ export function createWorldRenderer(
 			const frameClock = current?.residency === "frontend" ? null : clock;
 			environmentState = advanceEnvironment(
 				current?.environment ? environmentState : null,
-				environmentTarget(
-					current?.environment,
-					environmentTime( current?.environment, seconds, frameClock ),
-					weatherOptions,
-					backgroundDistance ?? 3500
+				applyZoneFog(
+					environmentTarget(
+						current?.environment,
+						environmentTime( current?.environment, seconds, frameClock ),
+						weatherOptions,
+						backgroundDistance ?? 3500
+					),
+					zoneFog
 				),
 				environmentSeconds === null ? 0 : Math.max( 0, seconds - environmentSeconds )
 			);
@@ -1790,7 +1912,9 @@ export function createWorldRenderer(
 				}
 				weatherImages.set( path, draw );
 			}
-			const decalDraws = prepareDecal( geometry, textures ),
+			const selectionDraws = prepareDecal( geometry, textures ),
+				rings = prepareGroundRings( geometry ),
+				decalDraws = rings.length ? [ ...selectionDraws, ...rings ] : selectionDraws,
 				groundDecalDraws = prepareFootprints( geometry, textures, seconds );
 			const weatherDraws = weather.prepare( geometry, weatherImages, localCamera, matrix );
 			probe?.worldMark?.( "world-environment" );
@@ -2283,6 +2407,8 @@ export function createWorldRenderer(
 		*/
 		invalidate() {
 			footprintDraws.clear();
+			ringSlots.length = 0;
+			ringDraws.length = 0;
 			decalImage = null;
 			decalDraw = null;
 			decalValid = false;
@@ -2346,6 +2472,9 @@ export function createWorldRenderer(
 			footprints = [];
 			if ( decalDraw ) geometry?.release( decalDraw );
 			decalDraw = null;
+			releaseGroundRings( geometry );
+			groundRings = [];
+			zoneFog = 0;
 			interactionCells.clear();
 			interactionScene = null;
 			decalState = null;

@@ -14,6 +14,24 @@ import type { EnvironmentTrack, WorldEnvironment, WorldCamera } from "@/engine/c
 // Port-only, not native: Sun direction stage: the sun height (sine of its arc angle) below which
 // the light blends toward the zenith so the night flip stays continuous.
 const SUN_TWILIGHT_HEIGHT = 0.2;
+// Port-only, not native: the Battle Royale zone fog (applyZoneFog). At full
+// strength the linear fog runs from ZONE_FOG_NEAR to ZONE_FOG_FAR world
+// units in the ZONE_FOG_ grey, and the sky's horizon and zenith take that
+// grey by the given shares.
+const ZONE_FOG_NEAR = 0;
+const ZONE_FOG_FAR = 700;
+const ZONE_FOG_RED = .72;
+const ZONE_FOG_GREEN = .75;
+const ZONE_FOG_BLUE = .78;
+const ZONE_FOG_HORIZON = 1;
+const ZONE_FOG_ZENITH = .6;
+// The environment target's offsets: zenith and horizon colours, fog
+// colour, fog start and end (environmentTarget).
+const TARGET_ZENITH = 3;
+const TARGET_HORIZON = 18;
+const TARGET_FOG = 27;
+const TARGET_FOG_NEAR = 32;
+const TARGET_FOG_FAR = 33;
 
 // Retail sub_4dc920/sub_4dcab0: clamped endpoints, linear interpolation,
 // and a lower-key step for spans below the native epsilon.
@@ -140,6 +158,34 @@ export function environmentTarget(
 		target[34] = 0;
 		target[35] = -1;
 	}
+	return target;
+}
+/*
+================
+applyZoneFog
+
+Port-only, not native: closes the fog in on a target by strength (0
+leaves it as it is, 1 is the full zone fog), in place, and returns it.
+The fog only ever tightens: a target already denser keeps its own range.
+advanceEnvironment eases the change in and out like any other.
+================
+*/
+export function applyZoneFog( target: Float32Array, strength: number ): Float32Array {
+	if ( !(strength > 0) ) return target;
+	const t = Math.min( 1, strength );
+	for ( let i = 0; i < 3; i++ ) {
+		const grey = i === 0 ? ZONE_FOG_RED : i === 1 ? ZONE_FOG_GREEN : ZONE_FOG_BLUE;
+		target[TARGET_FOG + i] = Math.fround( target[TARGET_FOG + i]! + (grey - target[TARGET_FOG + i]!) * t );
+		target[TARGET_HORIZON + i] = Math.fround(
+			target[TARGET_HORIZON + i]! + (grey - target[TARGET_HORIZON + i]!) * t * ZONE_FOG_HORIZON
+		);
+		target[TARGET_ZENITH + i] = Math.fround(
+			target[TARGET_ZENITH + i]! + (grey - target[TARGET_ZENITH + i]!) * t * ZONE_FOG_ZENITH
+		);
+	}
+	const near = target[TARGET_FOG_NEAR]!, far = target[TARGET_FOG_FAR]!;
+	target[TARGET_FOG_NEAR] = Math.min( near, near + (ZONE_FOG_NEAR - near) * t );
+	target[TARGET_FOG_FAR] = Math.min( far, far + (ZONE_FOG_FAR - far) * t );
 	return target;
 }
 /*

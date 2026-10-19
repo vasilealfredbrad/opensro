@@ -247,6 +247,21 @@ func (rt *Runtime) ExperienceUpdater() func(*enterworld.Character, int64, int64,
 
 /*
 ==================
+ExactExperienceUpdater
+
+ExactExperienceUpdater returns the door-free update that commits an EXP
+gain exactly as given: no growth rate scales it. Port-only, not native:
+a mode that sets its own pace (the battle royale's MatchKillExp) must
+not have the beta growth multiply it again. Call it from inside
+Dependencies.Update.
+==================
+*/
+func (rt *Runtime) ExactExperienceUpdater() func(*enterworld.Character, int64, int64, uint32) ([]wire.Frame, bool) {
+	return rt.commitExperience
+}
+
+/*
+==================
 ExperienceRefundUpdater
 
 ExperienceRefundUpdater returns the door-free update that gives back EXP a
